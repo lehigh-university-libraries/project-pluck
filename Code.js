@@ -10,6 +10,11 @@ const FACULTY_AUTHOR = 'Faculty Author';
 const LEGACY_CIRC_COUNT = 'ole_circ_count';
 const FOLIO_CIRC_COUNT = 'folio_circ_count';
 const OCLC_NUMBER = 'oclc_number';
+const INSTANCE_UUID = 'instance_uuid';
+const INSTANCE_HRID = 'instance_hrid';
+const ITEM_EFFECTIVE_LOCATION_NAME = 'item_effective_location_name';
+const HOLDINGS_PERMANENT_LOCATION_NAME = 'holdings_permanent_location_name';
+const MATERIAL_TYPE = 'material_type';
 
 const MAX_COLUMNS = 100;
 
@@ -49,14 +54,22 @@ function getColumn(text) {
 
 function barcodeChanged(row) {
   console.log("barcode changed in row " + row);
+  initFolio();
   const barcode = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(BARCODE), 1, 1).getValue();
   const item = loadItem(barcode);
   if (!item) {
     console.error("No item matching barcode: " + barcode);
   }
   item.instance = loadInstance(barcode);
+  item.holdingsRecord = loadHoldingsRecord(item);
   item.circulations = loadCirculationLogs(item, 'Checked out');
   writeItemToSheet(row, item);
+}
+
+function initFolio() {
+  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
+  authenticate(config);
+  LOCATIONS = loadLocations();
 }
 
 function authenticate(config) {
@@ -68,9 +81,25 @@ function authenticate(config) {
   FOLIOAUTHLIBRARY.authenticateAndSetHeaders(config);
 }
 
+function loadLocations() {
+  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
+
+  // execute query
+  const locationsQuery = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) +
+    `/locations?limit=100`;
+  console.log('Loading locations with query: ', encodeURI(locationsQuery));
+  const getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
+  const locationsResponse = UrlFetchApp.fetch(locationsQuery, getOptions);
+
+  // parse response
+  const locationsResponseText = locationsResponse.getContentText();
+  const locations = JSON.parse(locationsResponseText)['locations'];
+  
+  return locations.reduce((map, location) => { map[location.id] = location; return map; }, {} );
+}
+
 function loadItem(barcode) {
   const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
-  authenticate(config);
 
   // execute query
   const DQ = encodeURIComponent("\"");
@@ -86,6 +115,23 @@ function loadItem(barcode) {
   let item = items[0] ?? null;
 
   return item;
+}
+
+function loadHoldingsRecord(item) {
+  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
+
+  // execute query
+  const holdingsRecordQuery = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) +
+    `/holdings-storage/holdings/${item.holdingsRecordId}`;
+  console.log('Loading holdings record with query: ', encodeURI(holdingsRecordQuery));
+  const getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
+  const holdingsRecordResponse = UrlFetchApp.fetch(holdingsRecordQuery, getOptions);
+
+  // parse response
+  const holdingsRecordResponseText = holdingsRecordResponse.getContentText();
+  const holdingsRecord = JSON.parse(holdingsRecordResponseText);
+  
+  return holdingsRecord;
 }
 
 function loadInstance(barcode) {
@@ -174,10 +220,14 @@ function parseOclcNumber(item) {
   return null;
 }
 
+function parseLocation(locationId) {
+  return LOCATIONS[locationId]?.['name'];
+}
+
 function writeItemToSheet(row, item) {
   writeToSheet(row, getColumn(EFFECTIVE_CALL_NUMBER), item['effectiveShelvingOrder']);
   writeToSheet(row, getColumn(TITLE), item['title']);
-  writeToSheet(row, getColumn(CONTRIBUTOR), item['contributorNames']?.[0]?.['name'] ?? '');
+  writeToSheet(row, getColumn(CONTRIBUTOR), item['contributorNames']?.[0]?.['name']);
   writeToSheet(row, getColumn(PUBLICATION_DATE), item.instance['publication']?.[0]?.['dateOfPublication']);
   writeToSheet(row, getColumn(ITEM_STATUS), item['status']['name']);
   writeToSheet(row, getColumn(RETENTION), hasRetentionAgreement(item));
@@ -185,6 +235,11 @@ function writeItemToSheet(row, item) {
   writeToSheet(row, getColumn(LEGACY_CIRC_COUNT), parseLegacyCircCount(item));
   writeToSheet(row, getColumn(FOLIO_CIRC_COUNT), parseFolioCircCount(item));
   writeToSheet(row, getColumn(OCLC_NUMBER), parseOclcNumber(item));
+  writeToSheet(row, getColumn(INSTANCE_UUID), item.instance.id);
+  writeToSheet(row, getColumn(INSTANCE_HRID), item.instance.hrid);
+  writeToSheet(row, getColumn(ITEM_EFFECTIVE_LOCATION_NAME), item['effectiveLocation']?.['name']);
+  writeToSheet(row, getColumn(HOLDINGS_PERMANENT_LOCATION_NAME), parseLocation(item.holdingsRecord['permanentLocationId']));
+  writeToSheet(row, getColumn(MATERIAL_TYPE), item['materialType']?.['name']);
 }
 
 function writeToSheet(row, column, value) {
