@@ -15,8 +15,30 @@ const INSTANCE_HRID = 'instance_hrid';
 const ITEM_EFFECTIVE_LOCATION_NAME = 'item_effective_location_name';
 const HOLDINGS_PERMANENT_LOCATION_NAME = 'holdings_permanent_location_name';
 const MATERIAL_TYPE = 'material_type';
+const DECISION = 'Decision';
+const DECISION_NOTE = 'Decision Note';
 
 const MAX_COLUMNS = 100;
+
+// decisions
+const WITHDRAW = 'to be withdrawn';
+const REMOTE = 'remote storage';
+const SC = 'possible sc material';
+const KEEP = 'keep';
+const MISSING = 'missing - book is not on shelf';
+const DECISIONS = [ WITHDRAW, REMOTE, SC, KEEP, MISSING] ;
+const DECISIONS_RULE = SpreadsheetApp.newDataValidation().requireValueInList(DECISIONS).build();
+
+const WITHDRAW_NOTES = [ 'low circ', 'second copy' ];
+const REMOTE_NOTES = [ 'fragile' ];
+const SC_NOTES = [ 'date', 'subject', 'scarcely held', 'bookplate', 'signed copy', 'accession number' ];
+const KEEP_NOTES = [ 'scarcely held', 'seminal work', 'curricular/interest' ];
+
+const RULES = new Map();
+RULES.set(WITHDRAW, SpreadsheetApp.newDataValidation().requireValueInList(WITHDRAW_NOTES).build());
+RULES.set(REMOTE, SpreadsheetApp.newDataValidation().requireValueInList(REMOTE_NOTES).build());
+RULES.set(SC, SpreadsheetApp.newDataValidation().requireValueInList(SC_NOTES).build());
+RULES.set(KEEP, SpreadsheetApp.newDataValidation().requireValueInList(KEEP_NOTES).build());
 
 // statistical codes
 const RETENTION_IDS = [
@@ -39,6 +61,9 @@ function onEdit(e) {
   var column = e.range.getColumn();
   if (column == getColumn(BARCODE)) {
     barcodeChanged(e.range.getRow());
+  }
+  else if (column == getColumn(DECISION)) {
+    decisionChanged(e.range.getRow());
   }
 }
 
@@ -64,6 +89,7 @@ function barcodeChanged(row) {
   item.holdingsRecord = loadHoldingsRecord(item);
   item.circulations = loadCirculationLogs(item, 'Checked out');
   writeItemToSheet(row, item);
+  initDecision(row);
 }
 
 function writeItemToSheet(row, item) {
@@ -86,6 +112,20 @@ function writeItemToSheet(row, item) {
 
 function writeToSheet(row, column, value) {
   SpreadsheetApp.getActiveSheet().getRange(row, column).setValue(value);
+}
+
+function initDecision(row) {
+  SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION)).setDataValidation(DECISIONS_RULE);
+}
+
+function decisionChanged(row) {
+  const noteCell = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION_NOTE));
+  noteCell.clear({contentsOnly: true, validationsOnly: true});
+  const decision = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION)).getValue();
+  const rule = RULES.get(decision);
+  if (rule) {
+    noteCell.setDataValidation(rule);
+  }
 }
 
 function initFolio() {
