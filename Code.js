@@ -92,8 +92,8 @@ function loadInstance(barcode) {
 function writeItemToSheet(row, item) {
   writeToSheet(row, getColumn(EFFECTIVE_CALL_NUMBER), item['effectiveShelvingOrder']);
   writeToSheet(row, getColumn(TITLE), item['title']);
-  writeToSheet(row, getColumn(CONTRIBUTOR), item['contributorNames'][0]['name']);
-  writeToSheet(row, getColumn(PUBLICATION_DATE), item.instance['publication'][0]['dateOfPublication']);
+  writeToSheet(row, getColumn(CONTRIBUTOR), item['contributorNames']?.[0]?.['name'] ?? '');
+  writeToSheet(row, getColumn(PUBLICATION_DATE), item.instance['publication']?.[0]?.['dateOfPublication']);
   writeToSheet(row, getColumn(ITEM_STATUS), item['status']['name']);
 }
 
