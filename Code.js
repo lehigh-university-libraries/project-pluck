@@ -66,6 +66,28 @@ function barcodeChanged(row) {
   writeItemToSheet(row, item);
 }
 
+function writeItemToSheet(row, item) {
+  writeToSheet(row, getColumn(EFFECTIVE_CALL_NUMBER), item['effectiveShelvingOrder']);
+  writeToSheet(row, getColumn(TITLE), item['title']);
+  writeToSheet(row, getColumn(CONTRIBUTOR), item['contributorNames']?.[0]?.['name']);
+  writeToSheet(row, getColumn(PUBLICATION_DATE), item.instance['publication']?.[0]?.['dateOfPublication']);
+  writeToSheet(row, getColumn(ITEM_STATUS), item['status']['name']);
+  writeToSheet(row, getColumn(RETENTION), hasRetentionAgreement(item));
+  writeToSheet(row, getColumn(FACULTY_AUTHOR), isFacultyAuthor(item));
+  writeToSheet(row, getColumn(LEGACY_CIRC_COUNT), parseLegacyCircCount(item));
+  writeToSheet(row, getColumn(FOLIO_CIRC_COUNT), parseFolioCircCount(item));
+  writeToSheet(row, getColumn(OCLC_NUMBER), parseOclcNumber(item));
+  writeToSheet(row, getColumn(INSTANCE_UUID), item.instance.id);
+  writeToSheet(row, getColumn(INSTANCE_HRID), item.instance.hrid);
+  writeToSheet(row, getColumn(ITEM_EFFECTIVE_LOCATION_NAME), item['effectiveLocation']?.['name']);
+  writeToSheet(row, getColumn(HOLDINGS_PERMANENT_LOCATION_NAME), parseLocation(item.holdingsRecord['permanentLocationId']));
+  writeToSheet(row, getColumn(MATERIAL_TYPE), item['materialType']?.['name']);
+}
+
+function writeToSheet(row, column, value) {
+  SpreadsheetApp.getActiveSheet().getRange(row, column).setValue(value);
+}
+
 function initFolio() {
   const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
   authenticate(config);
@@ -222,26 +244,4 @@ function parseOclcNumber(item) {
 
 function parseLocation(locationId) {
   return LOCATIONS[locationId]?.['name'];
-}
-
-function writeItemToSheet(row, item) {
-  writeToSheet(row, getColumn(EFFECTIVE_CALL_NUMBER), item['effectiveShelvingOrder']);
-  writeToSheet(row, getColumn(TITLE), item['title']);
-  writeToSheet(row, getColumn(CONTRIBUTOR), item['contributorNames']?.[0]?.['name']);
-  writeToSheet(row, getColumn(PUBLICATION_DATE), item.instance['publication']?.[0]?.['dateOfPublication']);
-  writeToSheet(row, getColumn(ITEM_STATUS), item['status']['name']);
-  writeToSheet(row, getColumn(RETENTION), hasRetentionAgreement(item));
-  writeToSheet(row, getColumn(FACULTY_AUTHOR), isFacultyAuthor(item));
-  writeToSheet(row, getColumn(LEGACY_CIRC_COUNT), parseLegacyCircCount(item));
-  writeToSheet(row, getColumn(FOLIO_CIRC_COUNT), parseFolioCircCount(item));
-  writeToSheet(row, getColumn(OCLC_NUMBER), parseOclcNumber(item));
-  writeToSheet(row, getColumn(INSTANCE_UUID), item.instance.id);
-  writeToSheet(row, getColumn(INSTANCE_HRID), item.instance.hrid);
-  writeToSheet(row, getColumn(ITEM_EFFECTIVE_LOCATION_NAME), item['effectiveLocation']?.['name']);
-  writeToSheet(row, getColumn(HOLDINGS_PERMANENT_LOCATION_NAME), parseLocation(item.holdingsRecord['permanentLocationId']));
-  writeToSheet(row, getColumn(MATERIAL_TYPE), item['materialType']?.['name']);
-}
-
-function writeToSheet(row, column, value) {
-  SpreadsheetApp.getActiveSheet().getRange(row, column).setValue(value);
 }
