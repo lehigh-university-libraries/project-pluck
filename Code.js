@@ -101,8 +101,8 @@ function getColumn(text) {
 function barcodeChanged(row) {
   console.log("barcode changed in row " + row);
   const item = loadItemForRow(row);
-  item.instance = loadInstance(barcode);
   item.holdingsRecord = loadHoldingsRecord(item);
+  item.instance = loadInstance(item);
   item.circulations = loadCirculationLogs(item, 'Checked out');
   writeItemToSheet(row, item);
   initDecision(row);
@@ -194,36 +194,14 @@ function authenticate(config) {
 }
 
 function loadLocations() {
-  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
-
-  // execute query
-  const locationsQuery = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) +
-    `/locations?limit=100`;
-  console.log('Loading locations with query: ', encodeURI(locationsQuery));
-  const getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
-  const locationsResponse = UrlFetchApp.fetch(locationsQuery, getOptions);
-
-  // parse response
-  const locationsResponseText = locationsResponse.getContentText();
-  const locations = JSON.parse(locationsResponseText)['locations'];
-  
+  const url = `/locations?limit=100`;
+  const locations = queryFolioGet(url)['locations'];
   return locations.reduce((map, location) => { map[location.id] = location; return map; }, {} );
 }
 
 function loadStatisticalCodes() {
-  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
-
-  // execute query
-  const statisticalCodesQuery = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) +
-    `/statistical-codes?limit=100`;
-  console.log('Loading statistical codes with query: ', encodeURI(statisticalCodesQuery));
-  const getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
-  const statisticalCodesResponse = UrlFetchApp.fetch(statisticalCodesQuery, getOptions);
-
-  // parse response
-  const statisticalCodesResponseText = statisticalCodesResponse.getContentText();
-  const statisticalCodes = JSON.parse(statisticalCodesResponseText)['statisticalCodes'];
-  
+  const url = `/statistical-codes?limit=100`;
+  const statisticalCodes = queryFolioGet(url)['statisticalCodes'];
   return statisticalCodes.reduce((map, statisticalCode) => { map[statisticalCode.code] = statisticalCode.id; return map; }, {} );
 }
 
@@ -234,101 +212,28 @@ function loadDecisionNoteTypeId() {
   return noteType.id;
 }
 
-function queryFolioGet(url) {
-  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
-
-  // execute query
-  const query = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) + url;
-  console.log('Executing query: ', query);
-  const getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
-  const response = UrlFetchApp.fetch(query, getOptions);
-
-  // parse response
-  const responseText = response.getContentText();
-  const responseData = JSON.parse(responseText);
-  console.log("response data: ", responseData);
-  
-  return responseData;
-}
-
 function loadItem(barcode) {
-  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
-
-  // execute query
-  const DQ = encodeURIComponent("\"");
-  const itemsQuery = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) +
-    `/inventory/items?query=barcode==${DQ}${barcode}${DQ}`;
-  console.log('Loading item with query: ', encodeURI(itemsQuery));
-  const getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
-  const itemsResponse = UrlFetchApp.fetch(itemsQuery, getOptions);
-
-  // parse response
-  const itemsResponseText = itemsResponse.getContentText();
-  const items = JSON.parse(itemsResponseText)['items'];
-  let item = items[0] ?? null;
-
+  const url = `/inventory/items?query=${encodeURIComponent(`barcode==${barcode}`)}`;
+  const items = queryFolioGet(url)['items'];
+  const item = items[0] ?? null;
   return item;
 }
 
 function loadHoldingsRecord(item) {
-  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
-
-  // execute query
-  const holdingsRecordQuery = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) +
-    `/holdings-storage/holdings/${item.holdingsRecordId}`;
-  console.log('Loading holdings record with query: ', encodeURI(holdingsRecordQuery));
-  const getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
-  const holdingsRecordResponse = UrlFetchApp.fetch(holdingsRecordQuery, getOptions);
-
-  // parse response
-  const holdingsRecordResponseText = holdingsRecordResponse.getContentText();
-  const holdingsRecord = JSON.parse(holdingsRecordResponseText);
-  
+  const url = `/holdings-storage/holdings/${item.holdingsRecordId}`;
+  const holdingsRecord = queryFolioGet(url);
   return holdingsRecord;
 }
 
-function loadInstance(barcode) {
-  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
-
-  // execute initial query -- to fine the instance ID
-  const instancesQuery = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) +
-    `/search/instances?query=${encodeURIComponent(`items.barcode=="${barcode}"`)}`;
-  console.log('Loading instances with query: ', encodeURI(instancesQuery));
-  const getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
-  const instancesResponse = UrlFetchApp.fetch(instancesQuery, getOptions);
-
-  // parse initial response
-  const instancesResponseText = instancesResponse.getContentText();
-  const instances = JSON.parse(instancesResponseText)['instances'];
-  let instance = instances[0] ?? null;
-
-  // must load the full instance for the full body, including notes
-  let instanceQuery = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) +
-    `/inventory/instances/${instance.id}`;
-  console.log('Loading full instance with query: ', encodeURI(instanceQuery));
-  const instanceResponse = UrlFetchApp.fetch(instanceQuery, getOptions);
-
-  // parse second response
-  const instanceResponseText = instanceResponse.getContentText();
-  instance = JSON.parse(instanceResponseText);
-
+function loadInstance(item) {
+  const url = `/inventory/instances/${item.holdingsRecord.instanceId}`;
+  const instance = queryFolioGet(url);
   return instance;
 }
 
 function loadCirculationLogs(item, action) {
-  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
-
-  // execute query
-  const logsQuery = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) +
-    `/audit-data/circulation/logs?query=${encodeURIComponent(`(items=="*${item.id}*" and action=="${action}")`)}`;
-  console.log('Loading circ logs with query: ', encodeURI(logsQuery));
-  const getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
-  const logsResponse = UrlFetchApp.fetch(logsQuery, getOptions);
-
-  // parse response
-  const logsResponseText = logsResponse.getContentText();
-  const logs = JSON.parse(logsResponseText);
-
+  const url = `/audit-data/circulation/logs?query=${encodeURIComponent(`(items=="*${item.id}*" and action=="${action}")`)}`;
+  const logs = queryFolioGet(url);
   return logs;
 }
 
@@ -397,4 +302,21 @@ function parseOclcNumber(item) {
 
 function parseLocation(locationId) {
   return LOCATIONS[locationId]?.['name'];
+}
+
+function queryFolioGet(url) {
+  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
+
+  // execute query
+  const query = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) + url;
+  console.log('Executing query: ', query);
+  const getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
+  const response = UrlFetchApp.fetch(query, getOptions);
+
+  // parse response
+  const responseText = response.getContentText();
+  const responseData = JSON.parse(responseText);
+  console.log("response data: ", responseData);
+  
+  return responseData;
 }
