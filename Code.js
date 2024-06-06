@@ -40,14 +40,31 @@ RULES.set(REMOTE, SpreadsheetApp.newDataValidation().requireValueInList(REMOTE_N
 RULES.set(SC, SpreadsheetApp.newDataValidation().requireValueInList(SC_NOTES).build());
 RULES.set(KEEP, SpreadsheetApp.newDataValidation().requireValueInList(KEEP_NOTES).build());
 
-// statistical codes
+const DECISION_CODES = new Map([
+  [WITHDRAW, 'to-withdraw'],
+  [REMOTE, 'for-rm'],
+  [SC, 'may-be-sc'],
+  [KEEP, 'decision-keep'],
+]);
+
 const RETENTION_IDS = [
   'ba16cd17-fb83-4a14-ab40-23c7ffa5ccb5',
 ]
 
+const DECISION_NOTE_ITEM_TYPE = 'Project Pluck Decision';
+
 const FACULTY_AUTHOR_NOTE_TEXT = "Lehigh Faculty Author Publication";
 const LEGACY_CIRC_COUNT_NOTE_TYPE_ID = '8f26b475-d7e3-4577-8bd0-c3d3bf44f73b';
 const OCLC_NUMBER_IDENTIFIER_TYPE_ID = '439bfbae-75bc-4f74-9fc7-b2a2d47ce3ef';
+
+var DECISION_CODE_TO_ID;
+
+initFolio();
+
+function test() {
+  // testEdit();
+  // testProcessDecision();
+}
 
 function testEdit() {
   onEdit({
@@ -55,6 +72,10 @@ function testEdit() {
     range : SpreadsheetApp.getActiveSpreadsheet().getActiveCell(),
     value : SpreadsheetApp.getActiveSpreadsheet().getActiveCell().getValue(),
   });
+}
+
+function testProcessDecision() {
+  processDecision(SpreadsheetApp.getActiveSpreadsheet().getActiveCell().getRow());
 }
 
 function onEdit(e) {
@@ -79,12 +100,7 @@ function getColumn(text) {
 
 function barcodeChanged(row) {
   console.log("barcode changed in row " + row);
-  initFolio();
-  const barcode = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(BARCODE), 1, 1).getValue();
-  const item = loadItem(barcode);
-  if (!item) {
-    console.error("No item matching barcode: " + barcode);
-  }
+  const item = loadItemForRow(row);
   item.instance = loadInstance(barcode);
   item.holdingsRecord = loadHoldingsRecord(item);
   item.circulations = loadCirculationLogs(item, 'Checked out');
@@ -128,10 +144,44 @@ function decisionChanged(row) {
   }
 }
 
+function processDecision(row) {
+  console.log("processing decision for row " + row);
+  const item = loadItemForRow(row);
+
+  const decision = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION)).getValue();
+  const statisticalCode = DECISION_CODES.get(decision);
+  const statisticalCodeId = DECISION_CODE_TO_ID[statisticalCode];
+  if (statisticalCodeId) {
+    item['statisticalCodeIds'].push(statisticalCodeId);
+  }
+
+  const decisionNote = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION_NOTE)).getValue();
+  if (decisionNote) {
+    item['notes'].push({
+      itemNoteTypeId: DECISION_NOTE_TYPE_ID,
+      note: decisionNote,
+      staffOnly: true,
+    });
+  }
+
+  putItem(item);
+}
+
+function loadItemForRow(row) {
+  const barcode = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(BARCODE), 1, 1).getValue();
+  const item = loadItem(barcode);
+  if (!item) {
+    console.error("No item matching barcode: " + barcode);
+  }
+  return item;
+}
+
 function initFolio() {
   const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
   authenticate(config);
   LOCATIONS = loadLocations();
+  DECISION_CODE_TO_ID = loadStatisticalCodes();
+  DECISION_NOTE_TYPE_ID = loadDecisionNoteTypeId();
 }
 
 function authenticate(config) {
@@ -158,6 +208,47 @@ function loadLocations() {
   const locations = JSON.parse(locationsResponseText)['locations'];
   
   return locations.reduce((map, location) => { map[location.id] = location; return map; }, {} );
+}
+
+function loadStatisticalCodes() {
+  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
+
+  // execute query
+  const statisticalCodesQuery = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) +
+    `/statistical-codes?limit=100`;
+  console.log('Loading statistical codes with query: ', encodeURI(statisticalCodesQuery));
+  const getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
+  const statisticalCodesResponse = UrlFetchApp.fetch(statisticalCodesQuery, getOptions);
+
+  // parse response
+  const statisticalCodesResponseText = statisticalCodesResponse.getContentText();
+  const statisticalCodes = JSON.parse(statisticalCodesResponseText)['statisticalCodes'];
+  
+  return statisticalCodes.reduce((map, statisticalCode) => { map[statisticalCode.code] = statisticalCode.id; return map; }, {} );
+}
+
+function loadDecisionNoteTypeId() {
+  const url = `/item-note-types?limit=100&query=${encodeURIComponent(`name=="${DECISION_NOTE_ITEM_TYPE}"`)}`;
+  const noteTypes = queryFolioGet(url)['itemNoteTypes'];
+  const noteType = noteTypes[0];
+  return noteType.id;
+}
+
+function queryFolioGet(url) {
+  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
+
+  // execute query
+  const query = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) + url;
+  console.log('Executing query: ', query);
+  const getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
+  const response = UrlFetchApp.fetch(query, getOptions);
+
+  // parse response
+  const responseText = response.getContentText();
+  const responseData = JSON.parse(responseText);
+  console.log("response data: ", responseData);
+  
+  return responseData;
 }
 
 function loadItem(barcode) {
@@ -239,6 +330,28 @@ function loadCirculationLogs(item, action) {
   const logs = JSON.parse(logsResponseText);
 
   return logs;
+}
+
+function putItem(item) {
+  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
+
+  // execute query
+  const itemQuery = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) +
+    `/inventory/items/${item.id}`;
+  console.log('Saving item with barcode ' + item.barcode + ", " + JSON.stringify(item));
+  const headers = FOLIOAUTHLIBRARY.getHttpGetHeaders();
+  const options = {
+    'method': 'put',
+    'contentType': 'application/json',
+    'headers': headers,
+    'payload': JSON.stringify(item),
+    'muteHttpExceptions': true,
+  };
+
+  // parse response
+  let response = UrlFetchApp.fetch(itemQuery, options);
+  let responseContent = response.getContentText()
+  console.log("Got code " + response.getResponseCode() + ", response " + JSON.stringify(responseContent) + " from item " + item.barcode);
 }
 
 function hasRetentionAgreement(item) {
