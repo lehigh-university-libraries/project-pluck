@@ -59,14 +59,13 @@ const OCLC_NUMBER_IDENTIFIER_TYPE_ID = '439bfbae-75bc-4f74-9fc7-b2a2d47ce3ef';
 
 var DECISION_CODE_TO_ID;
 
-initFolio();
-
 function test() {
   // testEdit();
   // testProcessDecision();
 }
 
 function testEdit() {
+  initFolio();
   onEdit({
     source : SpreadsheetApp.getActiveSpreadsheet(),
     range : SpreadsheetApp.getActiveSpreadsheet().getActiveCell(),
@@ -75,6 +74,7 @@ function testEdit() {
 }
 
 function testProcessDecision() {
+  initFolio();
   processDecision(SpreadsheetApp.getActiveSpreadsheet().getActiveCell().getRow());
 }
 
