@@ -57,11 +57,14 @@ const FACULTY_AUTHOR_NOTE_TEXT = "Lehigh Faculty Author Publication";
 const LEGACY_CIRC_COUNT_NOTE_TYPE_ID = '8f26b475-d7e3-4577-8bd0-c3d3bf44f73b';
 const OCLC_NUMBER_IDENTIFIER_TYPE_ID = '439bfbae-75bc-4f74-9fc7-b2a2d47ce3ef';
 
+const INSTANCE_STATUS_WITHDRAWN_CODE = 'Withdrawn';
+
 var DECISION_CODE_TO_ID;
 
 function test() {
   // testEdit();
   // testProcessDecision();
+  // testProcessWithdraw();
 }
 
 function testEdit() {
@@ -76,6 +79,11 @@ function testEdit() {
 function testProcessDecision() {
   initFolio();
   processDecision(SpreadsheetApp.getActiveSpreadsheet().getActiveCell().getRow());
+}
+
+function testProcessWithdraw() {
+  initFolio();
+  processWithdraw(SpreadsheetApp.getActiveSpreadsheet().getActiveCell().getRow());
 }
 
 function onEdit(e) {
@@ -100,9 +108,7 @@ function getColumn(text) {
 
 function barcodeChanged(row) {
   console.log("barcode changed in row " + row);
-  const item = loadItemForRow(row);
-  item.holdingsRecord = loadHoldingsRecord(item);
-  item.instance = loadInstance(item);
+  const item = loadItemForRow(row, {holdingsRecord: true, instance: true});
   item.circulations = loadCirculationLogs(item, 'Checked out');
   writeItemToSheet(row, item);
   initDecision(row);
@@ -167,11 +173,39 @@ function processDecision(row) {
   putItem(item);
 }
 
-function loadItemForRow(row) {
+function processWithdraw(row) {
+  console.log("processing withdrawal for row " + row);
+  const item = loadItemForRow(row, {holdingsRecord: true, instance: true});
+
+  item['status']['name'] = 'Withdrawn';
+  item['discoverySuppress'] = true;
+  putItem(item);
+
+  if (!hasUnsuppressedItems(item.holdingsRecord, item)) {
+    console.log("suppress holdings record");
+    item.holdingsRecord['discoverySuppress'] = true;
+    putHoldingsRecord(item.holdingsRecord);
+
+    if (!hasUnsuppressedHoldingsRecords(item.instance, item.holdingsRecord)) {
+      console.log("suppress instance");
+      item.instance['discoverySuppress'] = true;
+      item.instance['statusId'] = INSTANCE_STATUS_WITHDRAWN_ID;
+      putInstance(item.instance);
+    }
+  }
+}
+
+function loadItemForRow(row, {holdingsRecord = false, instance = false} = {}) {
   const barcode = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(BARCODE), 1, 1).getValue();
   const item = loadItem(barcode);
   if (!item) {
     console.error("No item matching barcode: " + barcode);
+  }
+  if (holdingsRecord) {
+    item.holdingsRecord = loadHoldingsRecord(item);
+  }
+  if (instance) {
+    item.instance = loadInstance(item);
   }
   return item;
 }
@@ -182,6 +216,7 @@ function initFolio() {
   LOCATIONS = loadLocations();
   DECISION_CODE_TO_ID = loadStatisticalCodes();
   DECISION_NOTE_TYPE_ID = loadDecisionNoteTypeId();
+  INSTANCE_STATUS_WITHDRAWN_ID = loadInstanceStatusWithdrawnId();
 }
 
 function authenticate(config) {
@@ -212,6 +247,13 @@ function loadDecisionNoteTypeId() {
   return noteType.id;
 }
 
+function loadInstanceStatusWithdrawnId() {
+  const url = `/instance-statuses?limit=100&query=${encodeURIComponent(`code=="${INSTANCE_STATUS_WITHDRAWN_CODE}"`)}`;
+  const instanceStatuses = queryFolioGet(url)['instanceStatuses'];
+  const instanceStatus = instanceStatuses[0];
+  return instanceStatus.id;
+}
+
 function loadItem(barcode) {
   const url = `/inventory/items?query=${encodeURIComponent(`barcode==${barcode}`)}`;
   const items = queryFolioGet(url)['items'];
@@ -238,25 +280,42 @@ function loadCirculationLogs(item, action) {
 }
 
 function putItem(item) {
-  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
+  const url = `/inventory/items/${item.id}`;
+  return queryFolioPut(url, item);
+}
 
-  // execute query
-  const itemQuery = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) +
-    `/inventory/items/${item.id}`;
-  console.log('Saving item with barcode ' + item.barcode + ", " + JSON.stringify(item));
-  const headers = FOLIOAUTHLIBRARY.getHttpGetHeaders();
-  const options = {
-    'method': 'put',
-    'contentType': 'application/json',
-    'headers': headers,
-    'payload': JSON.stringify(item),
-    'muteHttpExceptions': true,
-  };
+function hasUnsuppressedItems(holdingsRecord, ignoreItem) {
+  const url = `/inventory/items-by-holdings-id?query=${encodeURIComponent(`holdingsRecordId==${holdingsRecord.id}`)}`;
+  let items = queryFolioGet(url)['items'];
+  return hasUnsuppressedRecord(items, ignoreItem);
+}
 
-  // parse response
-  let response = UrlFetchApp.fetch(itemQuery, options);
-  let responseContent = response.getContentText()
-  console.log("Got code " + response.getResponseCode() + ", response " + JSON.stringify(responseContent) + " from item " + item.barcode);
+function putHoldingsRecord(holdingsRecord) {
+  const url = `/holdings-storage/holdings/${holdingsRecord.id}`;
+  return queryFolioPut(url, holdingsRecord);
+}
+
+function hasUnsuppressedHoldingsRecords(instance, ignoreHoldingsRecord) {
+  const url = `/holdings-storage/holdings?query=${encodeURIComponent(`instanceId==${instance.id}`)}`;
+  holdingsRecords = queryFolioGet(url)['holdingsRecords'];
+  return hasUnsuppressedRecord(holdingsRecords, ignoreHoldingsRecord);
+}
+
+function putInstance(instance) {
+  const url = `/inventory/instances/${instance.id}`;
+  return queryFolioPut(url, instance);
+}
+
+function hasUnsuppressedRecord(recordList, ignoreRecord) {
+  const unsuppressedRecords = recordList.filter(
+    (record) => (!record['discoverySuppress']) && (record.id != ignoreRecord.id)
+  );
+  for (record of recordList) {
+    if (!record['discoverySuppress']) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function hasRetentionAgreement(item) {
@@ -309,14 +368,47 @@ function queryFolioGet(url) {
 
   // execute query
   const query = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) + url;
-  console.log('Executing query: ', query);
+  console.log('Executing GET query: ', query);
   const getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
   const response = UrlFetchApp.fetch(query, getOptions);
 
   // parse response
   const responseText = response.getContentText();
-  const responseData = JSON.parse(responseText);
-  console.log("response data: ", responseData);
-  
-  return responseData;
+  if (response.getResponseCode() < 200 || response.getResponseCode() >= 400) {
+    console.error(`Error response: ${response.getResponseCode()}, ${responseText}`);
+    return null;
+  }
+  else {
+    const responseData = JSON.parse(responseText);
+    console.log("response data: ", responseData);
+    return responseData;
+  }  
+}
+
+function queryFolioPut(url, payload) {
+  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
+
+  // execute query
+  const query = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) + url;
+  const payloadString = JSON.stringify(payload);
+  console.log(`Executing PUT query with url ${url} and payload ${payloadString}`);
+  const headers = FOLIOAUTHLIBRARY.getHttpGetHeaders();
+  headers['Accept'] = '*/*'
+  const options = {
+    'method': 'put',
+    'contentType': 'application/json',
+    'headers': headers,
+    'payload': payloadString,
+    'muteHttpExceptions': true,
+  };
+  let response = UrlFetchApp.fetch(query, options);
+
+  // parse response
+  let responseContent = response.getContentText()
+  if (response.getResponseCode() < 200 || response.getResponseCode() >= 400) {
+    console.error(`Error response: ${response.getResponseCode()}, ${responseContent}`);
+  }
+  else {
+    console.log(`Got code ${response.getResponseCode()}, response ${JSON.stringify(responseContent)}`);
+  }
 }
