@@ -18,6 +18,27 @@ const MATERIAL_TYPE = 'material_type';
 const DECISION = 'Decision';
 const DECISION_NOTE = 'Decision Note';
 
+const HEADERS = [
+  BARCODE,
+  EFFECTIVE_CALL_NUMBER,
+  TITLE,
+  CONTRIBUTOR,
+  PUBLICATION_DATE,
+  ITEM_STATUS,
+  RETENTION,
+  FACULTY_AUTHOR,
+  LEGACY_CIRC_COUNT,
+  FOLIO_CIRC_COUNT,
+  OCLC_NUMBER,
+  INSTANCE_UUID,
+  INSTANCE_HRID,
+  ITEM_EFFECTIVE_LOCATION_NAME,
+  HOLDINGS_PERMANENT_LOCATION_NAME,
+  MATERIAL_TYPE,
+  DECISION,
+  DECISION_NOTE,
+];
+
 const MAX_COLUMNS = 100;
 
 // decisions
@@ -60,11 +81,22 @@ const OCLC_NUMBER_IDENTIFIER_TYPE_ID = '439bfbae-75bc-4f74-9fc7-b2a2d47ce3ef';
 const INSTANCE_STATUS_WITHDRAWN_CODE = 'Withdrawn';
 
 var DECISION_CODE_TO_ID;
+var LOCATIONS;
 
 function test() {
+  // testInitSheetForLocation();
   // testEdit();
   // testProcessDecision();
   // testProcessWithdraw();
+}
+
+function testInitSheetForLocation() {
+  initSheetForLocation({
+    'environment': 'test',
+    'location_id': '460df2a6-6146-4749-9ff0-a0d0730e0214',
+    'start_row': 0,
+    'row_count' : 10,
+  });
 }
 
 function testEdit() {
@@ -84,6 +116,48 @@ function testProcessDecision() {
 function testProcessWithdraw() {
   initFolio();
   processWithdraw(SpreadsheetApp.getActiveSpreadsheet().getActiveCell().getRow());
+}
+
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('Project Pluck')
+    .addItem('Show Sidebar', 'showSidebar')
+    .addToUi();
+}
+
+function showSidebar() {
+  var html = HtmlService.createHtmlOutputFromFile('sidebar')
+    .setTitle('Project Pluck')
+    .setWidth(500);
+  SpreadsheetApp.getUi()
+    .showSidebar(html);
+}
+
+function getLocations(config) {
+  initFolio();
+  return Object.entries(LOCATIONS).sort((a, b) => {return a['code'] < b['code']});
+}
+
+function initSheetForLocation(config) {
+  console.log("initSheetForLocation: ", config);
+  initFolio();
+  writeHeaders();
+
+  let locationId = config.location_id;
+  let offset = parseInt(config.start_row);
+  let count = parseInt(config.row_count);
+  const items = loadItems(locationId, offset, count);
+  let row = SpreadsheetApp.getActiveSheet().getLastRow();
+  for (const item of items) {
+    row++;
+    enrichItem(item, true, true);
+    writeItemToSheet(row, item);
+    initDecision(row);
+  }
+}
+
+function writeHeaders() {
+  SpreadsheetApp.getActiveSheet().getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
 }
 
 function onEdit(e) {
@@ -200,18 +274,27 @@ function loadItemForRow(row, {holdingsRecord = false, instance = false} = {}) {
   const item = loadItem(barcode);
   if (!item) {
     console.error("No item matching barcode: " + barcode);
+    return null;
   }
+  enrichItem(item, holdingsRecord, instance);
+  return item;
+}
+
+function enrichItem(item, holdingsRecord, instance) {
   if (holdingsRecord) {
     item.holdingsRecord = loadHoldingsRecord(item);
   }
   if (instance) {
     item.instance = loadInstance(item);
   }
-  return item;
+  item.circulations = loadCirculationLogs(item, 'Checked out');
 }
 
-function initFolio() {
-  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
+function initFolio(config = null) { 
+  if (config) {
+    PropertiesService.getScriptProperties().setProperty("config", JSON.stringify(config));
+  }
+  config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
   authenticate(config);
   LOCATIONS = loadLocations();
   DECISION_CODE_TO_ID = loadStatisticalCodes();
@@ -252,6 +335,12 @@ function loadInstanceStatusWithdrawnId() {
   const instanceStatuses = queryFolioGet(url)['instanceStatuses'];
   const instanceStatus = instanceStatuses[0];
   return instanceStatus.id;
+}
+
+function loadItems(locationId, offset, count) {
+  const url = `/inventory/items?query=${encodeURIComponent(`effectiveLocationId=="${locationId}" sortby effectiveCallNumberComponents.callNumber`)}&limit=${count}&offset=${offset}`;
+  const items = queryFolioGet(url)['items'];
+  return items;
 }
 
 function loadItem(barcode) {

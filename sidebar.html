@@ -1,0 +1,168 @@
+<html>
+
+<head>
+
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons.css">
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,700" rel="stylesheet">
+
+  <style type="text/css">
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #445460;
+    }
+
+    label, legend {
+      color: white;
+      font-weight: bold;
+    }
+
+    select {
+      text-align: left;
+    }
+
+    #environment div {
+      display: inline-block;
+    }
+
+    #environment div:not(:last-child) {
+      margin-right: 30px;
+    }
+  </style>
+
+</head>
+
+<body>
+  <div class="sidebar">
+    <form>
+
+      <fieldset id="environment">
+        <legend>Environment</legend>
+        <div class="block">
+          <div class="form-group">
+            <input type="radio" id="env_test" value="test" name="environment">
+            <label for="env_test">Test</label>
+          </div>
+          <div class="form-group">
+            <input type="radio" id="env_prod" value="prod" name="environment">
+            <label for="env_prod">Production</label>
+          </div>
+        </div>
+
+        <div class="block form-group">
+          <input type="button" class="action" id="init_environment" value="Load Locations" onclick="initEnvironment()" />
+        </div>
+      </fieldset>
+      <br />
+
+      <fieldset id="environment">
+        <legend>Load Items</legend>
+
+        <div class="block form-group">
+          <label for="start_row">Location</label>
+          <select id="location">
+          </select>
+        </div>
+
+        <div class="block form-group">
+          <label for="start_row">Offset</label>
+          <input type="text" id="start_row">
+        </div>
+
+        <div class="block form-group">
+          <label for="row_count">Count</label>
+          <input type="text" id="row_count">
+        </div>
+
+        <div class="block form-group">
+          <input type="button" class="action" id="init_sheet" value="Load Items" disabled="disabled" onclick="initSheetForLocation()" />
+        </div>
+      </fieldset>
+      <br />
+
+    </form>
+
+    <!-- Load the jQuery library from the Google CDN -->
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+
+
+    <script>
+      $("#environment input[type=radio]").click(function() {
+        checkReadyToSubmit();
+      });
+      $("input[type=text]").keyup(function() {
+        checkReadyToSubmit();
+      })
+
+      function checkReadyToSubmit() {
+        let start_row = $("#start_row").val();
+        let row_count = $("#row_count").val();
+
+        if ($("#environment input[type=radio]:checked").size() > 0
+          && start_row.length && !isNaN(start_row)
+          && row_count.length && !isNaN(row_count)) {
+          $("#init_sheet").removeAttr("disabled");
+        }
+        else {
+          $("#init_sheet").attr("disabled", "disabled");
+        }
+      }
+
+      function initEnvironment() {
+        function onSuccess(locations) {
+          console.info("locations: " + locations);
+          for (const [locationId, location] of locations) {
+            let option = `<option value="${locationId}">${location['code']}</option>`;
+            $('#location').append(option);
+          }
+        }
+
+        function onFailure(locations) {
+          console.log("Failed with error: ", error);
+          alert("Failed with error: " + error);
+        }
+        let environment = $("#environment input[type=radio]:checked").val();
+        let locations = google.script.run
+          .withSuccessHandler(onSuccess)
+          .withFailureHandler(onFailure)
+          .getLocations({
+            'environment': environment
+        });
+      }
+
+      function initSheetForLocation() {
+        function onSuccess() {
+          console.info("init sheet succeeded.");
+          $("#init_sheet").removeAttr("disabled");
+        }
+
+        function onFailure(error) {
+          console.info("init sheet failed.");
+          alert("Failed with error: " + error);
+          $("#init_sheet").removeAttr("disabled");
+        }
+
+        $("#init_sheet").attr("disabled", "disabled");
+        let environment = $("#environment input[type=radio]:checked").val();
+        let start_row = $("#start_row").val();
+        let row_count = $("#row_count").val();
+        let location_id = $("#location option:checked").val();
+        console.log("location_id: " + location_id);
+        google.script.run
+          .withSuccessHandler(onSuccess)
+          .withFailureHandler(onFailure)
+          .initSheetForLocation({
+            'environment': environment,
+            'start_row': start_row,
+            'row_count': row_count,
+            'location_id': location_id,
+          });
+      }
+
+    </script>
+
+  </div>
+
+</body>
+
+</html>
