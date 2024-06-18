@@ -41,6 +41,8 @@ const HEADERS = [
 
 const MAX_COLUMNS = HEADERS.length;
 
+const DEFAULT_COUNT = 20;
+
 // decisions
 const WITHDRAW = 'to be withdrawn';
 const REMOTE = 'remote storage';
@@ -144,8 +146,11 @@ function initSheetForLocation(config) {
   writeHeaders();
 
   let locationId = config.location_id;
-  let offset = parseInt(config.start_row);
-  let count = parseInt(config.row_count);
+  writeTabName(locationId);
+
+  let offset = config.start_row ? parseInt(config.start_row) : SpreadsheetApp.getActiveSheet().getLastRow() - 1;
+  let count = config.row_count ? parseInt(config.row_count) : DEFAULT_COUNT;
+  console.log(`writing items to sheet with offset ${offset} and count ${count}`);
   const items = loadItems(locationId, offset, count);
   let row = SpreadsheetApp.getActiveSheet().getLastRow();
   for (const item of items) {
@@ -153,7 +158,7 @@ function initSheetForLocation(config) {
     enrichItem(item, true, true);
     writeItemToSheet(row, item);
     initDecision(row);
-    if (row % 10 == 0) {
+    if (row % 10 == 1) {
       SpreadsheetApp.flush();
     }
   }
@@ -161,6 +166,11 @@ function initSheetForLocation(config) {
 
 function writeHeaders() {
   SpreadsheetApp.getActiveSheet().getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+}
+
+function writeTabName(locationId) {
+  let code = LOCATIONS[locationId]?.['code'];
+  SpreadsheetApp.getActiveSheet().setName(code);
 }
 
 function onEdit(e) {

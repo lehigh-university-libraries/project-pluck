@@ -65,17 +65,7 @@
         </div>
 
         <div class="block form-group">
-          <label for="start_row">Offset</label>
-          <input type="text" id="start_row">
-        </div>
-
-        <div class="block form-group">
-          <label for="row_count">Count</label>
-          <input type="text" id="row_count">
-        </div>
-
-        <div class="block form-group">
-          <input type="button" class="action" id="init_sheet" value="Load Items" disabled="disabled" onclick="initSheetForLocation()" />
+          <input type="button" class="action" id="init_sheet" value="Load Items" onclick="initSheetForLocation()" />
         </div>
       </fieldset>
       <br />
@@ -87,27 +77,6 @@
 
 
     <script>
-      $("#environment input[type=radio]").click(function() {
-        checkReadyToSubmit();
-      });
-      $("input[type=text]").keyup(function() {
-        checkReadyToSubmit();
-      })
-
-      function checkReadyToSubmit() {
-        let start_row = $("#start_row").val();
-        let row_count = $("#row_count").val();
-
-        if ($("#environment input[type=radio]:checked").size() > 0
-          && start_row.length && !isNaN(start_row)
-          && row_count.length && !isNaN(row_count)) {
-          $("#init_sheet").removeAttr("disabled");
-        }
-        else {
-          $("#init_sheet").attr("disabled", "disabled");
-        }
-      }
-
       function initEnvironment() {
         function onSuccess(locations) {
           console.info("locations: " + locations);
@@ -144,8 +113,6 @@
 
         $("#init_sheet").attr("disabled", "disabled");
         let environment = $("#environment input[type=radio]:checked").val();
-        let start_row = $("#start_row").val();
-        let row_count = $("#row_count").val();
         let location_id = $("#location option:checked").val();
         console.log("location_id: " + location_id);
         google.script.run
@@ -153,8 +120,6 @@
           .withFailureHandler(onFailure)
           .initSheetForLocation({
             'environment': environment,
-            'start_row': start_row,
-            'row_count': row_count,
             'location_id': location_id,
           });
       }
