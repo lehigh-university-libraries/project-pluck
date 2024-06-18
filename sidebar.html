@@ -81,7 +81,10 @@
         function onSuccess(locations) {
           console.info("locations: " + locations);
           for (const [locationId, location] of locations) {
-            let option = `<option value="${locationId}">${location['code']}</option>`;
+            let option = $(`<option value="${locationId}">${location['code']}</option>`);
+            if (location['activeSheet'] ?? false) {
+              $(option).attr('selected', true);
+            }
             $('#location').append(option);
           }
         }

@@ -334,6 +334,15 @@ function authenticate(config) {
 function loadLocations() {
   const url = `/locations?limit=100`;
   const locations = queryFolioGet(url)['locations'];
+
+  // identify active sheet
+  const activeSheet = SpreadsheetApp.getActiveSheet().getName();
+  for (const location of locations) {
+    if (location['code'] == activeSheet) {
+      location['activeSheet'] = true;
+    }
+  }
+
   return locations.reduce((map, location) => { map[location.id] = location; return map; }, {} );
 }
 
