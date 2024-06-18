@@ -39,7 +39,7 @@ const HEADERS = [
   DECISION_NOTE,
 ];
 
-const MAX_COLUMNS = 100;
+const MAX_COLUMNS = HEADERS.length;
 
 // decisions
 const WITHDRAW = 'to be withdrawn';
@@ -153,6 +153,9 @@ function initSheetForLocation(config) {
     enrichItem(item, true, true);
     writeItemToSheet(row, item);
     initDecision(row);
+    if (row % 10 == 0) {
+      SpreadsheetApp.flush();
+    }
   }
 }
 
@@ -171,13 +174,11 @@ function onEdit(e) {
 }
 
 function getColumn(text) {
-  const headers = SpreadsheetApp.getActiveSheet().getRange(1, 1, 1, MAX_COLUMNS).getValues()[0];
-  for (var i=0; i < headers.length; i++) {
-    if (text == headers[i]) {
-      return i + 1;
-    }
+  let index = HEADERS.findIndex((element) => element == text);
+  if (index < 0) {
+    return null;
   }
-  return null;
+  return index + 1;
 }
 
 function barcodeChanged(row) {
@@ -189,25 +190,34 @@ function barcodeChanged(row) {
 }
 
 function writeItemToSheet(row, item) {
-  writeToSheet(row, getColumn(EFFECTIVE_CALL_NUMBER), item['effectiveShelvingOrder']);
-  writeToSheet(row, getColumn(TITLE), item['title']);
-  writeToSheet(row, getColumn(CONTRIBUTOR), item['contributorNames']?.[0]?.['name']);
-  writeToSheet(row, getColumn(PUBLICATION_DATE), item.instance['publication']?.[0]?.['dateOfPublication']);
-  writeToSheet(row, getColumn(ITEM_STATUS), item['status']['name']);
-  writeToSheet(row, getColumn(RETENTION), hasRetentionAgreement(item));
-  writeToSheet(row, getColumn(FACULTY_AUTHOR), isFacultyAuthor(item));
-  writeToSheet(row, getColumn(LEGACY_CIRC_COUNT), parseLegacyCircCount(item));
-  writeToSheet(row, getColumn(FOLIO_CIRC_COUNT), parseFolioCircCount(item));
-  writeToSheet(row, getColumn(OCLC_NUMBER), parseOclcNumber(item));
-  writeToSheet(row, getColumn(INSTANCE_UUID), item.instance.id);
-  writeToSheet(row, getColumn(INSTANCE_HRID), item.instance.hrid);
-  writeToSheet(row, getColumn(ITEM_EFFECTIVE_LOCATION_NAME), item['effectiveLocation']?.['name']);
-  writeToSheet(row, getColumn(HOLDINGS_PERMANENT_LOCATION_NAME), parseLocation(item.holdingsRecord['permanentLocationId']));
-  writeToSheet(row, getColumn(MATERIAL_TYPE), item['materialType']?.['name']);
+  initWriteToRow();
+  writeToRow(getColumn(EFFECTIVE_CALL_NUMBER), item['effectiveShelvingOrder']);
+  writeToRow(getColumn(TITLE), item['title']);
+  writeToRow(getColumn(CONTRIBUTOR), item['contributorNames']?.[0]?.['name']);
+  writeToRow(getColumn(PUBLICATION_DATE), item.instance['publication']?.[0]?.['dateOfPublication']);
+  writeToRow(getColumn(ITEM_STATUS), item['status']['name']);
+  writeToRow(getColumn(RETENTION), hasRetentionAgreement(item));
+  writeToRow(getColumn(FACULTY_AUTHOR), isFacultyAuthor(item));
+  writeToRow(getColumn(LEGACY_CIRC_COUNT), parseLegacyCircCount(item));
+  writeToRow(getColumn(FOLIO_CIRC_COUNT), parseFolioCircCount(item));
+  writeToRow(getColumn(OCLC_NUMBER), parseOclcNumber(item));
+  writeToRow(getColumn(INSTANCE_UUID), item.instance.id);
+  writeToRow(getColumn(INSTANCE_HRID), item.instance.hrid);
+  writeToRow(getColumn(ITEM_EFFECTIVE_LOCATION_NAME), item['effectiveLocation']?.['name']);
+  writeToRow(getColumn(HOLDINGS_PERMANENT_LOCATION_NAME), parseLocation(item.holdingsRecord['permanentLocationId']));
+  writeToRow(getColumn(MATERIAL_TYPE), item['materialType']?.['name']);
+  commitWriteToRow(row);
 }
 
-function writeToSheet(row, column, value) {
-  SpreadsheetApp.getActiveSheet().getRange(row, column).setValue(value);
+let writeBuffer;
+function initWriteToRow() {
+  writeBuffer = Array(MAX_COLUMNS).fill('');
+}
+function writeToRow(column, value) {
+  writeBuffer[column - 1] = value;
+}
+function commitWriteToRow(row) {
+  SpreadsheetApp.getActiveSheet().getRange(row, 1, 1, MAX_COLUMNS).setValues([writeBuffer]);
 }
 
 function initDecision(row) {
