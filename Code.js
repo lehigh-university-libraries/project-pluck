@@ -9,6 +9,7 @@ const RETENTION = 'EAST Retention';
 const FACULTY_AUTHOR = 'Faculty Author';
 const LEGACY_CIRC_COUNT = 'ole_circ_count';
 const FOLIO_CIRC_COUNT = 'folio_circ_count';
+const OCLC_HOLDINGS = 'OCLC Holdings';
 const OCLC_NUMBER = 'oclc_number';
 const INSTANCE_UUID = 'instance_uuid';
 const INSTANCE_HRID = 'instance_hrid';
@@ -29,6 +30,7 @@ const HEADERS = [
   FACULTY_AUTHOR,
   LEGACY_CIRC_COUNT,
   FOLIO_CIRC_COUNT,
+  OCLC_HOLDINGS,
   OCLC_NUMBER,
   INSTANCE_UUID,
   INSTANCE_HRID,
@@ -96,8 +98,6 @@ function testInitSheetForLocation() {
   initSheetForLocation({
     'environment': 'test',
     'location_id': '460df2a6-6146-4749-9ff0-a0d0730e0214',
-    'start_row': 0,
-    'row_count' : 10,
   });
 }
 
@@ -143,6 +143,7 @@ function getLocations(config) {
 function initSheetForLocation(config) {
   console.log("initSheetForLocation: ", config);
   initFolio();
+  initOclc();
   writeHeaders();
 
   let locationId = config.location_id;
@@ -156,6 +157,7 @@ function initSheetForLocation(config) {
   for (const item of items) {
     row++;
     enrichItem(item, true, true);
+    enrichFromOclc(item);
     writeItemToSheet(row, item);
     initDecision(row);
     if (row % 10 == 1) {
@@ -210,6 +212,7 @@ function writeItemToSheet(row, item) {
   writeToRow(getColumn(FACULTY_AUTHOR), isFacultyAuthor(item));
   writeToRow(getColumn(LEGACY_CIRC_COUNT), parseLegacyCircCount(item));
   writeToRow(getColumn(FOLIO_CIRC_COUNT), parseFolioCircCount(item));
+  writeToRow(getColumn(OCLC_HOLDINGS), parseOclcHoldings(item));
   writeToRow(getColumn(OCLC_NUMBER), parseOclcNumber(item));
   writeToRow(getColumn(INSTANCE_UUID), item.instance.id);
   writeToRow(getColumn(INSTANCE_HRID), item.instance.hrid);

@@ -176,11 +176,15 @@ function parseFolioCircCount(item) {
   return circ_count;
 }
 
-function parseOclcNumber(item) {
+function parseOclcNumber(item, stripPrefix = false) {
   const identifiers = item.instance['identifiers'];
   for (let identifier of identifiers) {
     if (OCLC_NUMBER_IDENTIFIER_TYPE_ID == identifier['identifierTypeId']) {
-      return identifier['value'];
+      let oclcNumber = identifier['value'];
+      if (stripPrefix) {
+        oclcNumber = oclcNumber.replace("(OCoLC)", "");
+      }
+      return oclcNumber;
     }
   }
   return null;
