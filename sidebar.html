@@ -55,17 +55,26 @@
       </fieldset>
       <br />
 
-      <fieldset id="environment">
+      <fieldset id="load_items">
         <legend>Load Items</legend>
 
         <div class="block form-group">
-          <label for="start_row">Location</label>
+          <label for="location">Location</label>
           <select id="location">
           </select>
         </div>
 
         <div class="block form-group">
           <input type="button" class="action" id="init_sheet" value="Load Items" onclick="initSheetForLocation()" />
+        </div>
+      </fieldset>
+      <br />
+
+      <fieldset id="process_decisions">
+        <legend>Process Decisions</legend>
+
+        <div class="block form-group">
+          <input type="button" class="action" id="process_decisions" value="Process Selected Rows" onclick="processDecisions()" />
         </div>
       </fieldset>
       <br />
@@ -125,6 +134,26 @@
             'environment': environment,
             'location_id': location_id,
           });
+      }
+
+      function processDecisions() {
+        function onSuccess() {
+          console.info("process decisions succeeded.");
+          $("#process_decisions").removeAttr("disabled");
+        }
+
+        function onFailure(error) {
+          console.info("process decisions failed.");
+          alert("Failed with error: " + error);
+          $("#process_decisions").removeAttr("disabled");
+        }
+
+        $("#process_decisions").attr("disabled", "disabled");
+        let environment = $("#environment input[type=radio]:checked").val();
+        google.script.run
+          .withSuccessHandler(onSuccess)
+          .withFailureHandler(onFailure)
+          .processDecisions();
       }
 
     </script>

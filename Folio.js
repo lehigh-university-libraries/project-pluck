@@ -238,8 +238,10 @@ function queryFolioPut(url, payload) {
   let responseContent = response.getContentText()
   if (response.getResponseCode() < 200 || response.getResponseCode() >= 400) {
     console.error(`Error response: ${response.getResponseCode()}, ${responseContent}`);
+    return `Error, see log.  At ${(new Date()).toString()}`;
   }
   else {
     console.log(`Got code ${response.getResponseCode()}, response ${JSON.stringify(responseContent)}`);
+    return false;
   }
 }

@@ -20,6 +20,7 @@ const HOLDINGS_PERMANENT_LOCATION_NAME = 'holdings_permanent_location_name';
 const MATERIAL_TYPE = 'material_type';
 const DECISION = 'Decision';
 const DECISION_NOTE = 'Decision Note';
+const SAVE_STATUS = 'Save Status';
 
 const HEADERS = [
   BARCODE,
@@ -43,6 +44,7 @@ const HEADERS = [
   MATERIAL_TYPE,
   DECISION,
   DECISION_NOTE,
+  SAVE_STATUS,
 ];
 
 const MAX_COLUMNS = HEADERS.length;
@@ -75,6 +77,11 @@ const DECISION_CODES = new Map([
   [SC, 'may-be-sc'],
   [KEEP, 'decision-keep'],
 ]);
+
+// save status
+const SUCCESS_MESSAGE = 'Saved';
+const SUCCESS_BACKGROUND = 'lightgreen';
+const FAILURE_BACKGROUND = 'lightcoral';
 
 const RETENTION_IDS = [
   'ba16cd17-fb83-4a14-ab40-23c7ffa5ccb5',
@@ -264,6 +271,19 @@ function decisionChanged(row) {
   }
 }
 
+function processDecisions() {
+  initFolio();
+  const selection = SpreadsheetApp.getActiveSheet().getSelection();
+  const ranges = selection.getActiveRangeList().getRanges();
+  for (const range of ranges) {
+    const start = range.getRow();
+    const end = range.getLastRow();
+    for (let row = start; row <= end; row ++) {
+      processDecision(row);
+    }
+  }
+}
+
 function processDecision(row) {
   console.log("processing decision for row " + row);
   const item = loadItemForRow(row);
@@ -284,7 +304,17 @@ function processDecision(row) {
     });
   }
 
-  putItem(item);
+  const error = putItem(item);
+  const saveStatusCell = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(SAVE_STATUS));
+  if (error) {
+    saveStatusCell.setValue(error);
+    saveStatusCell.setBackground(FAILURE_BACKGROUND);
+  }
+  else {
+    saveStatusCell.setValue(SUCCESS_MESSAGE);
+    saveStatusCell.setBackground(SUCCESS_BACKGROUND);
+  }
+
 }
 
 function processWithdraw(row) {
