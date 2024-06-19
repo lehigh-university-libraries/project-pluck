@@ -153,6 +153,7 @@ function getLocations(config) {
 
 function initSheetForLocation(config) {
   console.log("initSheetForLocation: ", config);
+  // logTime("start initSheetForLocation");
   initFolio();
   initOclc();
   initHathi();
@@ -168,6 +169,7 @@ function initSheetForLocation(config) {
   let row = SpreadsheetApp.getActiveSheet().getLastRow();
   for (const item of items) {
     row++;
+    // logTime('before enrichment');
     enrichItem(item, true, true);
     enrichFromOclc(item);
     enrichFromHathi(item);

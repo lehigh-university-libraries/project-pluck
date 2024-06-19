@@ -10,6 +10,7 @@ function initOclc() {
   const secret = PropertiesService.getScriptProperties().getProperty('oclcSecret');
 
   authenticateOclc(id, secret);
+  // logTime('after OCLC init');
 }
 
 // https://github.com/googleworkspace/apps-script-oauth2
@@ -31,6 +32,7 @@ function enrichFromOclc(item) {
   }
   const bibsHoldings = loadBibsHoldings(oclcNumber);
   item.oclcBibsHoldings = bibsHoldings;
+  // logTime('after OCLC enrichment');
 }
 
 function loadBibsHoldings(oclcNumber) {

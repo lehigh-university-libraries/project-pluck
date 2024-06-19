@@ -16,6 +16,7 @@ function enrichItem(item, holdingsRecord, instance) {
     item.instance = loadInstance(item);
   }
   item.circulations = loadCirculationLogs(item, 'Checked out');
+  // logTime('after FOLIO enrichment');
 }
 
 function initFolio(config = null) {
@@ -28,6 +29,7 @@ function initFolio(config = null) {
   DECISION_CODE_TO_ID = loadStatisticalCodes();
   DECISION_NOTE_TYPE_ID = loadDecisionNoteTypeId();
   INSTANCE_STATUS_WITHDRAWN_ID = loadInstanceStatusWithdrawnId();
+  // logTime('after FOLIO init');
 }
 
 function authenticate(config) {

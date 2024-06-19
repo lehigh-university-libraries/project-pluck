@@ -2,6 +2,7 @@ const HATHI_BASE_URL = 'https://catalog.hathitrust.org/api/volumes';
 
 function initHathi() {
   // noop
+  // logTime('after Hathi init');
 }
 
 function enrichFromHathi(item) {
@@ -12,6 +13,7 @@ function enrichFromHathi(item) {
   }
   const volumes = loadVolumesBrief(oclcNumber);
   item.hathi = volumes;
+  // logTime('after Hathi enrichment');
 }
 
 function loadVolumesBrief(oclcNumber) {
