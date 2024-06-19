@@ -12,6 +12,7 @@ const FOLIO_CIRC_COUNT = 'folio_circ_count';
 const OCLC_NUMBER = 'oclc_number';
 const OCLC_HOLDINGS = 'OCLC Holdings';
 const PALCI_HOLDINGS = 'PALCI Holdings';
+const HATHI_EBOOK = 'Hathi e-book';
 const INSTANCE_UUID = 'instance_uuid';
 const INSTANCE_HRID = 'instance_hrid';
 const ITEM_EFFECTIVE_LOCATION_NAME = 'item_effective_location_name';
@@ -34,6 +35,7 @@ const HEADERS = [
   OCLC_NUMBER,
   OCLC_HOLDINGS,
   PALCI_HOLDINGS,
+  HATHI_EBOOK,
   INSTANCE_UUID,
   INSTANCE_HRID,
   ITEM_EFFECTIVE_LOCATION_NAME,
@@ -146,6 +148,7 @@ function initSheetForLocation(config) {
   console.log("initSheetForLocation: ", config);
   initFolio();
   initOclc();
+  initHathi();
   writeHeaders();
 
   let locationId = config.location_id;
@@ -160,6 +163,7 @@ function initSheetForLocation(config) {
     row++;
     enrichItem(item, true, true);
     enrichFromOclc(item);
+    enrichFromHathi(item);
     writeItemToSheet(row, item);
     initDecision(row);
     if (row % 10 == 1) {
@@ -225,6 +229,7 @@ function writeItemToSheet(row, item) {
   writeToRow(getColumn(OCLC_NUMBER), parseOclcNumber(item));
   writeToRow(getColumn(OCLC_HOLDINGS), parseOclcHoldings(item));
   writeToRow(getColumn(PALCI_HOLDINGS), parsePalciHoldings(item));
+  writeToRow(getColumn(HATHI_EBOOK), parseHathiEbook(item));
   writeToRow(getColumn(INSTANCE_UUID), item.instance.id);
   writeToRow(getColumn(INSTANCE_HRID), item.instance.hrid);
   writeToRow(getColumn(ITEM_EFFECTIVE_LOCATION_NAME), item['effectiveLocation']?.['name']);
