@@ -168,6 +168,7 @@ function initSheetForLocation(config) {
 
 function writeHeaders() {
   SpreadsheetApp.getActiveSheet().getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+  SpreadsheetApp.getActiveSheet().setFrozenRows(1);
 }
 
 function writeTabName(locationId) {
