@@ -21,6 +21,7 @@ const MATERIAL_TYPE = 'material_type';
 const DECISION = 'Decision';
 const DECISION_NOTE = 'Decision Note';
 const SAVE_STATUS = 'Save Status';
+const WITHDRAW_STATUS = 'Withdraw Status';
 
 const HEADERS = [
   BARCODE,
@@ -45,6 +46,7 @@ const HEADERS = [
   DECISION,
   DECISION_NOTE,
   SAVE_STATUS,
+  WITHDRAW_STATUS,
 ];
 
 const MAX_COLUMNS = HEADERS.length;
@@ -78,8 +80,10 @@ const DECISION_CODES = new Map([
   [KEEP, 'decision-keep'],
 ]);
 
-// save status
-const SUCCESS_MESSAGE = 'Saved';
+// status columns
+const SAVE_SUCCESS_MESSAGE = 'Saved';
+const WITHDRAW_PENDING_MESSAGE = 'Pending';
+const WITHDRAW_SUCCESS_MESSAGE = 'Withdrawn';
 const SUCCESS_BACKGROUND = 'lightgreen';
 const FAILURE_BACKGROUND = 'lightcoral';
 
@@ -102,7 +106,7 @@ function test() {
   // testInitSheetForLocation();
   // testEdit();
   // testProcessDecision();
-  // testProcessWithdraw();
+  // testProcessWithdrawal();
 }
 
 function testInitSheetForLocation() {
@@ -126,9 +130,9 @@ function testProcessDecision() {
   processDecision(SpreadsheetApp.getActiveSpreadsheet().getActiveCell().getRow());
 }
 
-function testProcessWithdraw() {
+function testProcessWithdrawal() {
   initFolio();
-  processWithdraw(SpreadsheetApp.getActiveSpreadsheet().getActiveCell().getRow());
+  processWithdrawal(SpreadsheetApp.getActiveSpreadsheet().getActiveCell().getRow());
 }
 
 function onOpen() {
@@ -275,13 +279,22 @@ function decisionChanged(row) {
 
 function processDecisions() {
   initFolio();
+  processSelectedRows(processDecision);
+}
+
+function processWithdrawals() {
+  initFolio();
+  processSelectedRows(processWithdrawal);
+}
+
+function processSelectedRows(callback) {
   const selection = SpreadsheetApp.getActiveSheet().getSelection();
   const ranges = selection.getActiveRangeList().getRanges();
   for (const range of ranges) {
     const start = range.getRow();
     const end = range.getLastRow();
     for (let row = start; row <= end; row ++) {
-      processDecision(row);
+      callback(row);
     }
   }
 }
@@ -313,32 +326,55 @@ function processDecision(row) {
     saveStatusCell.setBackground(FAILURE_BACKGROUND);
   }
   else {
-    saveStatusCell.setValue(SUCCESS_MESSAGE);
+    saveStatusCell.setValue(SAVE_SUCCESS_MESSAGE);
     saveStatusCell.setBackground(SUCCESS_BACKGROUND);
-  }
 
+    if (WITHDRAW == decision) {
+      const withdrawalStatusCell = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(WITHDRAW_STATUS));
+      withdrawalStatusCell.setValue(WITHDRAW_PENDING_MESSAGE);
+    }
+  }
 }
 
-function processWithdraw(row) {
+function processWithdrawal(row) {
   console.log("processing withdrawal for row " + row);
   const item = loadItemForRow(row, {holdingsRecord: true, instance: true});
 
   item['status']['name'] = 'Withdrawn';
   item['discoverySuppress'] = true;
-  putItem(item);
+  let error = putItem(item);
+  const withdrawalStatusCell = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(WITHDRAW_STATUS));
+  if (error) {
+    withdrawalStatusCell.setValue('Error withdrawing item: ' + error);
+    withdrawalStatusCell.setBackground(FAILURE_BACKGROUND);
+    return;
+  }
 
   if (!hasUnsuppressedItems(item.holdingsRecord, item)) {
     console.log("suppress holdings record");
     item.holdingsRecord['discoverySuppress'] = true;
-    putHoldingsRecord(item.holdingsRecord);
-
+    error = putHoldingsRecord(item.holdingsRecord);
+    if (error) {
+      withdrawalStatusCell.setValue('Error withdrawing holdings record: ' + error);
+      withdrawalStatusCell.setBackground(FAILURE_BACKGROUND);
+      return;
+    }
+  
     if (!hasUnsuppressedHoldingsRecords(item.instance, item.holdingsRecord)) {
       console.log("suppress instance");
       item.instance['discoverySuppress'] = true;
       item.instance['statusId'] = INSTANCE_STATUS_WITHDRAWN_ID;
-      putInstance(item.instance);
+      error = putInstance(item.instance);
+      if (error) {
+        withdrawalStatusCell.setValue('Error withdrawing instance: ' + error);
+        withdrawalStatusCell.setBackground(FAILURE_BACKGROUND);
+        return;
+      }
     }
   }
+
+  withdrawalStatusCell.setValue(WITHDRAW_SUCCESS_MESSAGE);
+  withdrawalStatusCell.setBackground(SUCCESS_BACKGROUND);
 }
 
 function loadItemForRow(row, {holdingsRecord = false, instance = false} = {}) {

@@ -74,11 +74,19 @@
         <legend>Process Decisions</legend>
 
         <div class="block form-group">
-          <input type="button" class="action" id="process_decisions" value="Process Selected Rows" onclick="processDecisions()" />
+          <input type="button" class="action" id="process_decisions" value="Decide Selected Rows" onclick="processDecisions()" />
         </div>
       </fieldset>
       <br />
 
+      <fieldset id="process_withdrawals">
+        <legend>Process Withdrawals</legend>
+
+        <div class="block form-group">
+          <input type="button" class="action" id="process_withdrawals" value="Withdraw Selected Rows" onclick="processWithdrawals()" />
+        </div>
+      </fieldset>
+      <br />
     </form>
 
     <!-- Load the jQuery library from the Google CDN -->
@@ -149,11 +157,29 @@
         }
 
         $("#process_decisions").attr("disabled", "disabled");
-        let environment = $("#environment input[type=radio]:checked").val();
         google.script.run
           .withSuccessHandler(onSuccess)
           .withFailureHandler(onFailure)
           .processDecisions();
+      }
+
+      function processWithdrawals() {
+        function onSuccess() {
+          console.info("process withdrawals succeeded.");
+          $("#process_withdrawals").removeAttr("disabled");
+        }
+
+        function onFailure(error) {
+          console.info("process withdrawals failed.");
+          alert("Failed with error: " + error);
+          $("#process_withdrawals").removeAttr("disabled");
+        }
+
+        $("#process_withdrawals").attr("disabled", "disabled");
+        google.script.run
+          .withSuccessHandler(onSuccess)
+          .withFailureHandler(onFailure)
+          .processWithdrawals();
       }
 
     </script>
