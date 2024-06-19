@@ -185,6 +185,7 @@ function parseOclcNumber(item, stripPrefix = false) {
       let oclcNumber = identifier['value'];
       if (stripPrefix) {
         oclcNumber = oclcNumber.replace("(OCoLC)", "");
+        oclcNumber = oclcNumber.replace("ocn", "");
       }
       return oclcNumber;
     }
