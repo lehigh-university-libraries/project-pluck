@@ -9,8 +9,9 @@ const RETENTION = 'EAST Retention';
 const FACULTY_AUTHOR = 'Faculty Author';
 const LEGACY_CIRC_COUNT = 'ole_circ_count';
 const FOLIO_CIRC_COUNT = 'folio_circ_count';
-const OCLC_HOLDINGS = 'OCLC Holdings';
 const OCLC_NUMBER = 'oclc_number';
+const OCLC_HOLDINGS = 'OCLC Holdings';
+const PALCI_HOLDINGS = 'PALCI Holdings';
 const INSTANCE_UUID = 'instance_uuid';
 const INSTANCE_HRID = 'instance_hrid';
 const ITEM_EFFECTIVE_LOCATION_NAME = 'item_effective_location_name';
@@ -30,8 +31,9 @@ const HEADERS = [
   FACULTY_AUTHOR,
   LEGACY_CIRC_COUNT,
   FOLIO_CIRC_COUNT,
-  OCLC_HOLDINGS,
   OCLC_NUMBER,
+  OCLC_HOLDINGS,
+  PALCI_HOLDINGS,
   INSTANCE_UUID,
   INSTANCE_HRID,
   ITEM_EFFECTIVE_LOCATION_NAME,
@@ -169,6 +171,9 @@ function initSheetForLocation(config) {
 function writeHeaders() {
   SpreadsheetApp.getActiveSheet().getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
   SpreadsheetApp.getActiveSheet().setFrozenRows(1);
+
+  let column = getColumnLetter(PALCI_HOLDINGS);
+  SpreadsheetApp.getActiveSheet().getRange(`${column}1:${column}`).setHorizontalAlignment("right");
 }
 
 function writeTabName(locationId) {
@@ -194,6 +199,10 @@ function getColumn(text) {
   return index + 1;
 }
 
+function getColumnLetter(text) {
+  return String.fromCharCode(64 + getColumn(text))
+}
+
 function barcodeChanged(row) {
   console.log("barcode changed in row " + row);
   const item = loadItemForRow(row, {holdingsRecord: true, instance: true});
@@ -213,8 +222,9 @@ function writeItemToSheet(row, item) {
   writeToRow(getColumn(FACULTY_AUTHOR), isFacultyAuthor(item));
   writeToRow(getColumn(LEGACY_CIRC_COUNT), parseLegacyCircCount(item));
   writeToRow(getColumn(FOLIO_CIRC_COUNT), parseFolioCircCount(item));
-  writeToRow(getColumn(OCLC_HOLDINGS), parseOclcHoldings(item));
   writeToRow(getColumn(OCLC_NUMBER), parseOclcNumber(item));
+  writeToRow(getColumn(OCLC_HOLDINGS), parseOclcHoldings(item));
+  writeToRow(getColumn(PALCI_HOLDINGS), parsePalciHoldings(item));
   writeToRow(getColumn(INSTANCE_UUID), item.instance.id);
   writeToRow(getColumn(INSTANCE_HRID), item.instance.hrid);
   writeToRow(getColumn(ITEM_EFFECTIVE_LOCATION_NAME), item['effectiveLocation']?.['name']);

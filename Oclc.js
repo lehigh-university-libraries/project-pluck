@@ -2,6 +2,9 @@ TOKEN_URL = 'https://oauth.oclc.org/token';
 WORLDCATSEARCH_BASE_URL = 'https://americas.discovery.api.oclc.org/worldcat/search/v2';
 WORLDCATSEARCH_SCOPES = 'wcapi';
 
+const PALCI_OCLC_SYMBOLS = ['AVL','BEA','BMC','PBU','PBE','CRC','PMC','HHC','PBB','LQS','MAN','XR4','ALL','DKC','DRU','DXU','DUQ','ETS','EAS','ELZ','LFM','PGU','GDC','GBL','HUSAT','HVC','HFC','PZI','PJU','KOL','KZS','LRC','LAS','LAF','VFL','LVC','LYU','LYC','WHV','MRW','QRA','PGM','MVS','CMZ','NJM','MOR','EVI','ZMU','ZYU','UPM','CSC','REC','EIB','PHU','PMN','PTP','ROB','NJG','NJR','PSF','SJD','STH','SQP','SRS','PHA','SUS','PSC','TEU','PCT','PAU','PIT','SRU','URS','PVU','PUG','QWC','WVX','WVU','WFN','UWC','YCP'];
+const PALCI_OCLC_SYMBOLS_SET = new Set(PALCI_OCLC_SYMBOLS);
+
 function initOclc() {
   const id = PropertiesService.getScriptProperties().getProperty('oclcId');
   const secret = PropertiesService.getScriptProperties().getProperty('oclcSecret');
@@ -36,12 +39,24 @@ function loadBibsHoldings(oclcNumber) {
 }
 
 function parseOclcHoldings(item) {
-  const briefRecords = item.oclcBibsHoldings['briefRecords'];
-  if (!briefRecords.length) {
+  const briefRecords = item.oclcBibsHoldings?.['briefRecords'];
+  if (!briefRecords) {
     console.log("no brief records, cannot parse oclc holdings");
     return null;
   }
-  return briefRecords[0]['institutionHolding']['totalHoldingCount'];
+  return briefRecords?.[0]?.['institutionHolding']?.['totalHoldingCount'];
+}
+
+// This is an approximation only, since we only have 50 OCLC results to search through.
+function parsePalciHoldings(item) {
+  const briefHoldings = item.oclcBibsHoldings?.['briefRecords']?.[0]?.['institutionHolding']?.['briefHoldings'];
+  if (!briefHoldings) {
+    console.log("no brief holdings, cannot parse PALCI holdings");
+    return null;
+  }
+  let holdingsSymbols = briefHoldings.map((briefHolding) => briefHolding['oclcSymbol']);
+  const matches = holdingsSymbols.filter((symbol) => PALCI_OCLC_SYMBOLS_SET.has(symbol));
+  return matches.length + '+';
 }
 
 function queryWorldCatSearchGet(url) {
