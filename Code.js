@@ -217,6 +217,7 @@ function barcodeChanged(row) {
 
 function writeItemToSheet(row, item) {
   initWriteToRow();
+  writeToRow(getColumn(BARCODE), item['barcode']);
   writeToRow(getColumn(EFFECTIVE_CALL_NUMBER), item['effectiveShelvingOrder']);
   writeToRow(getColumn(TITLE), item['title']);
   writeToRow(getColumn(CONTRIBUTOR), item['contributorNames']?.[0]?.['name']);
