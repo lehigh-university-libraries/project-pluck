@@ -103,10 +103,17 @@ var DECISION_CODE_TO_ID;
 var LOCATIONS;
 
 function test() {
+  // testGetLocations();
   // testInitSheetForLocation();
   // testEdit();
   // testProcessDecision();
   // testProcessWithdrawal();
+}
+
+function testGetLocations() {
+  getLocations({
+    'environment': 'test',
+  });
 }
 
 function testInitSheetForLocation() {
@@ -377,7 +384,7 @@ function processWithdrawal(row) {
   withdrawalStatusCell.setBackground(SUCCESS_BACKGROUND);
 }
 
-function loadItemForRow(row, {holdingsRecord = false, instance = false} = {}) {
+function loadItemForRow(row, {holdingsRecord = false, instance = false, circulations = false} = {}) {
   const barcode = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(BARCODE), 1, 1).getValue();
-  return loadItemForBarcode(barcode, holdingsRecord, instance);
+  return loadItemForBarcode(barcode, holdingsRecord, instance, circulations);
 }

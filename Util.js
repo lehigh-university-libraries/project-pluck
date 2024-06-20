@@ -10,11 +10,11 @@ function logTime(text) {
 
 function getOrCreate(cacheKey, creationFunction, cacheTime) {
   let cache = CacheService.getScriptCache();
-  let value = cache.get(cacheKey);
+  let value = JSON.parse(cache.get(cacheKey));
   if (value == null) {
     console.log(`No cached ${cacheKey}; creating.`);
     value = creationFunction();
-    cache.put(cacheKey, value, cacheTime);
+    cache.put(cacheKey, JSON.stringify(value), cacheTime);
   }
   else {
     console.log(`Fetched ${cacheKey} from cache.`);
