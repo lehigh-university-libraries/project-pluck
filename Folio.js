@@ -1,3 +1,5 @@
+const FOLIO_CACHE_TIME = 60 * 30; // 30m
+
 function loadItemForBarcode(barcode, holdingsRecord, instance) {
   const item = loadItem(barcode);
   if (!item) {
@@ -25,10 +27,10 @@ function initFolio(config = null) {
   }
   config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
   authenticate(config);
-  LOCATIONS = loadLocations();
-  DECISION_CODE_TO_ID = loadStatisticalCodes();
-  DECISION_NOTE_TYPE_ID = loadDecisionNoteTypeId();
-  INSTANCE_STATUS_WITHDRAWN_ID = loadInstanceStatusWithdrawnId();
+  LOCATIONS = getOrCreate('loadLocations', loadLocations, FOLIO_CACHE_TIME);
+  DECISION_CODE_TO_ID = getOrCreate('loadStatisticalCodes', loadStatisticalCodes, FOLIO_CACHE_TIME);
+  DECISION_NOTE_TYPE_ID = getOrCreate('loadDecisionNoteTypeId', loadDecisionNoteTypeId, FOLIO_CACHE_TIME);
+  INSTANCE_STATUS_WITHDRAWN_ID = getOrCreate('loadInstanceStatusWithdrawnId', loadInstanceStatusWithdrawnId, FOLIO_CACHE_TIME);
   // logTime('after FOLIO init');
 }
 
