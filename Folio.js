@@ -1,23 +1,25 @@
 const FOLIO_CACHE_TIME = 60 * 30; // 30m
 
-function loadItemForBarcode(barcode, holdingsRecord, instance) {
+function loadItemForBarcode(barcode, holdingsRecord, instance, circulations) {
   const item = loadItem(barcode);
   if (!item) {
     console.error("No item matching barcode: " + barcode);
     return null;
   }
-  enrichItem(item, holdingsRecord, instance);
+  enrichItem(item, holdingsRecord, instance, circulations);
   return item;
 }
 
-function enrichItem(item, holdingsRecord, instance) {
+function enrichItem(item, holdingsRecord, instance, circulations) {
   if (holdingsRecord) {
     item.holdingsRecord = loadHoldingsRecord(item);
   }
   if (instance) {
     item.instance = loadInstance(item);
   }
-  item.circulations = loadCirculationLogs(item, 'Checked out');
+  if (circulations) {
+    item.circulations = loadCirculationLogs(item, 'Checked out');
+  }
   // logTime('after FOLIO enrichment');
 }
 

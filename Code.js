@@ -174,7 +174,7 @@ function initSheetForLocation(config) {
   for (const item of items) {
     row++;
     // logTime('before enrichment');
-    enrichItem(item, true, true);
+    enrichItem(item, true, true, true);
     enrichFromOclc(item);
     enrichFromHathi(item);
     writeItemToSheet(row, item);
