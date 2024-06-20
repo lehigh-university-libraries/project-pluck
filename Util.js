@@ -1,3 +1,4 @@
+// Performance testing
 let lastTime = false;
 function logTime(text) {
   const now = Date.now();
@@ -8,6 +9,7 @@ function logTime(text) {
   lastTime = now;
 }
 
+// Caching
 function getOrCreate(cacheKey, creationFunction, cacheTime) {
   let cache = CacheService.getScriptCache();
   let value = JSON.parse(cache.get(cacheKey));
@@ -20,4 +22,19 @@ function getOrCreate(cacheKey, creationFunction, cacheTime) {
     console.log(`Fetched ${cacheKey} from cache.`);
   }
   return value;
+}
+
+// Kill switch for long-running tasks
+const KILL_SWITCH_KEY = "killSwitch";
+const KILL_SWITCH_VALUE = "Delete this to kill job.";
+function initKillSwitch() {
+  PropertiesService.getScriptProperties().setProperty(KILL_SWITCH_KEY, KILL_SWITCH_VALUE);
+}
+function killSwitchFlipped() {
+  const value = PropertiesService.getScriptProperties().getProperty(KILL_SWITCH_KEY);
+  const flipped = (value == null);
+  if (flipped) {
+    console.log("kill switch flipped");
+  }
+  return flipped;
 }

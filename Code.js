@@ -51,7 +51,10 @@ const HEADERS = [
 
 const MAX_COLUMNS = HEADERS.length;
 
-const DEFAULT_COUNT = 20;
+const DEFAULT_COUNT = 50;
+const FLUSH_RATE = 5;
+const PAUSE_TIME = 5000;
+const TAB_COMPLETE_COLOR = 'green';
 
 // decisions
 const WITHDRAW = 'to be withdrawn';
@@ -164,7 +167,24 @@ function getLocations(config) {
 
 function initSheetForLocation(config) {
   console.log("initSheetForLocation: ", config);
+  PropertiesService.getScriptProperties().setProperty("config", JSON.stringify(config));
+  PropertiesService.getScriptProperties().setProperty('lastSheetName', SpreadsheetApp.getActiveSheet().getSheetName());
+
   // logTime("start initSheetForLocation");
+  initKillSwitch();
+  loadMoreItems();
+}
+
+function loadMoreItems() {
+  if (killSwitchFlipped()) {
+    return;
+  }
+
+  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
+
+  const sheetName = PropertiesService.getScriptProperties().getProperty('lastSheetName');
+  SpreadsheetApp.getActive().getSheetByName(sheetName).activate();
+
   initFolio();
   initOclc();
   initHathi();
@@ -173,10 +193,16 @@ function initSheetForLocation(config) {
   let locationId = config.location_id;
   writeTabName(locationId);
 
-  let offset = config.start_row ? parseInt(config.start_row) : SpreadsheetApp.getActiveSheet().getLastRow() - 1;
-  let count = config.row_count ? parseInt(config.row_count) : DEFAULT_COUNT;
+  let offset = SpreadsheetApp.getActiveSheet().getLastRow() - 1;
+  let count = DEFAULT_COUNT;
   console.log(`writing items to sheet with offset ${offset} and count ${count}`);
   const items = loadItems(locationId, offset, count);
+  if (items.length == 0) {
+    console.log("Loaded all items for this sheet");
+    SpreadsheetApp.getActiveSheet().setTabColor(TAB_COMPLETE_COLOR);
+    return;
+  }
+
   let row = SpreadsheetApp.getActiveSheet().getLastRow();
   for (const item of items) {
     row++;
@@ -186,10 +212,18 @@ function initSheetForLocation(config) {
     enrichFromHathi(item);
     writeItemToSheet(row, item);
     initDecision(row);
-    if (row % 10 == 1) {
+    if (row % FLUSH_RATE == 0) {
       SpreadsheetApp.flush();
     }
+    if (killSwitchFlipped()) {
+      break;
+    }
   }
+
+  ScriptApp.newTrigger('loadMoreItems')
+    .timeBased()
+    .after(PAUSE_TIME)
+    .create();
 }
 
 function writeHeaders() {
