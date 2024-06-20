@@ -200,6 +200,11 @@ function loadMoreItems() {
   if (items.length == 0) {
     console.log("Loaded all items for this sheet");
     SpreadsheetApp.getActiveSheet().setTabColor(TAB_COMPLETE_COLOR);
+    MailApp.sendEmail({
+      to: Session.getEffectiveUser().getEmail(),
+      subject: `${sheetName} load complete`,
+      htmlBody: `Google Sheets is done loading the items ${sheetName}.`,
+    })
     return;
   }
 
