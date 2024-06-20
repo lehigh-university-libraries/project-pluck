@@ -27,8 +27,7 @@ function initFolio(config = null) {
   if (config) {
     PropertiesService.getScriptProperties().setProperty("config", JSON.stringify(config));
   }
-  config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
-  authenticate(config);
+  getOrCreate('authenticate', authenticate, FOLIO_CACHE_TIME);
   LOCATIONS = getOrCreate('loadLocations', loadLocations, FOLIO_CACHE_TIME);
   DECISION_CODE_TO_ID = getOrCreate('loadStatisticalCodes', loadStatisticalCodes, FOLIO_CACHE_TIME);
   DECISION_NOTE_TYPE_ID = getOrCreate('loadDecisionNoteTypeId', loadDecisionNoteTypeId, FOLIO_CACHE_TIME);
@@ -36,13 +35,14 @@ function initFolio(config = null) {
   // logTime('after FOLIO init');
 }
 
-function authenticate(config) {
-  PropertiesService.getScriptProperties().setProperty("config", JSON.stringify(config));
+function authenticate() {
+  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
   config.username = PropertiesService.getScriptProperties().getProperty("username");
   config.password = Utilities.newBlob(Utilities.base64Decode(
     PropertiesService.getScriptProperties().getProperty("password")))
     .getDataAsString();
   FOLIOAUTHLIBRARY.authenticateAndSetHeaders(config);
+  return true;
 }
 
 function loadLocations() {
