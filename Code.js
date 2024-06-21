@@ -225,6 +225,14 @@ function loadMoreItems() {
     }
   }
 
+  scheduleLoadMoreItems(); 
+}
+
+function scheduleLoadMoreItems() {
+  const triggers = ScriptApp.getProjectTriggers();
+  for (const trigger of triggers) {
+    ScriptApp.deleteTrigger(trigger);
+  }
   ScriptApp.newTrigger('loadMoreItems')
     .timeBased()
     .after(PAUSE_TIME)
