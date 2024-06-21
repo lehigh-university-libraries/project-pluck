@@ -176,6 +176,16 @@ function initSheetForLocation(config) {
 }
 
 function loadMoreItems() {
+  try {
+    tryLoadMoreItems();    
+  }
+  catch (error) {
+    console.log('Error loading items: ', error);
+    email(`Error loading items to ${sheetName}`, `${error}`);
+  }
+}
+
+function tryLoadMoreItems() {
   if (killSwitchFlipped()) {
     return;
   }
@@ -208,15 +218,9 @@ function loadMoreItems() {
   for (const item of items) {
     row++;
     // logTime('before enrichment');
-    try {
-      enrichItem(item, true, true, true);
-      enrichFromOclc(item);
-      enrichFromHathi(item);
-    }
-    catch (error) {
-      console.log('Error enriching items: ', error);
-      email(`Error loading items to ${sheetName}`, `${error}`);
-    }
+    enrichItem(item, true, true, true);
+    enrichFromOclc(item);
+    enrichFromHathi(item);
     writeItemToSheet(row, item);
     initDecision(row);
     if (row % FLUSH_RATE == 0) {
