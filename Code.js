@@ -200,11 +200,7 @@ function loadMoreItems() {
   if (items.length == 0) {
     console.log("Loaded all items for this sheet");
     SpreadsheetApp.getActiveSheet().setTabColor(TAB_COMPLETE_COLOR);
-    MailApp.sendEmail({
-      to: Session.getEffectiveUser().getEmail(),
-      subject: `${sheetName} load complete`,
-      htmlBody: `Google Sheets is done loading the items ${sheetName}.`,
-    })
+    email(`${sheetName} load complete`, `Google Sheets is done loading the items ${sheetName}.`);
     return;
   }
 
@@ -212,9 +208,15 @@ function loadMoreItems() {
   for (const item of items) {
     row++;
     // logTime('before enrichment');
-    enrichItem(item, true, true, true);
-    enrichFromOclc(item);
-    enrichFromHathi(item);
+    try {
+      enrichItem(item, true, true, true);
+      enrichFromOclc(item);
+      enrichFromHathi(item);
+    }
+    catch (error) {
+      console.log('Error enriching items: ', error);
+      email(`Error loading items to ${sheetName}`, `${error}`);
+    }
     writeItemToSheet(row, item);
     initDecision(row);
     if (row % FLUSH_RATE == 0) {

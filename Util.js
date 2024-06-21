@@ -38,3 +38,12 @@ function killSwitchFlipped() {
   }
   return flipped;
 }
+
+// Email
+function email(subject, body) {
+  MailApp.sendEmail({
+    to: Session.getEffectiveUser().getEmail(),
+    subject: subject,
+    htmlBody: body,
+  });
+}
