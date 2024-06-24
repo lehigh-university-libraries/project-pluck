@@ -186,7 +186,7 @@ function parseOclcNumber(item, stripPrefix = false) {
   const identifiers = item.instance['identifiers'];
   for (let identifier of identifiers) {
     if (OCLC_NUMBER_IDENTIFIER_TYPE_ID == identifier['identifierTypeId']) {
-      let oclcNumber = identifier['value'];
+      let oclcNumber = identifier['value'].trim();
       if (stripPrefix) {
         oclcNumber = oclcNumber.replace("(OCoLC)", "");
         oclcNumber = oclcNumber.replace("ocn", "");
