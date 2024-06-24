@@ -176,8 +176,9 @@ function initSheetForLocation(config) {
 }
 
 function loadMoreItems() {
+  const sheetName = PropertiesService.getScriptProperties().getProperty('lastSheetName');
   try {
-    tryLoadMoreItems();    
+    tryLoadMoreItems(sheetName);    
   }
   catch (error) {
     console.log('Error loading items: ', error);
@@ -185,14 +186,13 @@ function loadMoreItems() {
   }
 }
 
-function tryLoadMoreItems() {
+function tryLoadMoreItems(sheetName) {
   if (killSwitchFlipped()) {
     return;
   }
 
   const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
 
-  const sheetName = PropertiesService.getScriptProperties().getProperty('lastSheetName');
   SpreadsheetApp.getActive().getSheetByName(sheetName).activate();
 
   initFolio();
