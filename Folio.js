@@ -46,7 +46,7 @@ function authenticate() {
 }
 
 function loadLocations() {
-  const url = `/locations?limit=100`;
+  const url = `/locations?limit=1000&query=${encodeURIComponent(`cql.allRecords = 1 sortby code`)}`;
   const locations = queryFolioGet(url)['locations'];
 
   // identify active sheet
