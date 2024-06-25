@@ -1,5 +1,21 @@
 const FOLIO_CACHE_TIME = 60 * 30; // 30m
 
+const ITEM_STATUSES = [
+  'Available',
+  'Awaiting delivery',
+  'Declared lost',
+  'In process',
+  'In process (non-requestable)',
+  'In transit',
+  'Intellectual item',
+  'Long missing',
+  'Lost and paid',
+  'Missing',
+  'Restricted',
+  'Unavailable',
+  'Unknown',
+];
+
 function loadItemForBarcode(barcode, holdingsRecord, instance, circulations) {
   const item = loadItem(barcode);
   if (!item) {
@@ -81,7 +97,8 @@ function loadInstanceStatusWithdrawnId() {
 }
 
 function loadItems(locationId, offset, count) {
-  const url = `/inventory/items?query=${encodeURIComponent(`effectiveLocationId=="${locationId}" sortby effectiveCallNumberComponents.callNumber`)}&limit=${count}&offset=${offset}`;
+  const statusNamesString = ITEM_STATUSES.map((status) => `"${status}"`).join(' OR ')
+  const url = `/inventory/items?query=${encodeURIComponent(`effectiveLocationId=="${locationId}" AND (status.name = (${statusNamesString})) sortby effectiveCallNumberComponents.callNumber`)}&limit=${count}&offset=${offset}`;
   const items = queryFolioGet(url)['items'];
   return items;
 }
