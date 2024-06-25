@@ -65,17 +65,6 @@ const MISSING = 'missing - book is not on shelf';
 const DECISIONS = [ WITHDRAW, REMOTE, SC, KEEP, MISSING] ;
 const DECISIONS_RULE = SpreadsheetApp.newDataValidation().requireValueInList(DECISIONS).build();
 
-const WITHDRAW_NOTES = [ 'low circ', 'second copy' ];
-const REMOTE_NOTES = [ 'fragile' ];
-const SC_NOTES = [ 'date', 'subject', 'scarcely held', 'bookplate', 'signed copy', 'accession number' ];
-const KEEP_NOTES = [ 'scarcely held', 'seminal work', 'curricular/interest' ];
-
-const RULES = new Map();
-RULES.set(WITHDRAW, SpreadsheetApp.newDataValidation().requireValueInList(WITHDRAW_NOTES).build());
-RULES.set(REMOTE, SpreadsheetApp.newDataValidation().requireValueInList(REMOTE_NOTES).build());
-RULES.set(SC, SpreadsheetApp.newDataValidation().requireValueInList(SC_NOTES).build());
-RULES.set(KEEP, SpreadsheetApp.newDataValidation().requireValueInList(KEEP_NOTES).build());
-
 const DECISION_CODES = new Map([
   [WITHDRAW, 'to-withdraw'],
   [REMOTE, 'for-rm'],
@@ -263,9 +252,6 @@ function onEdit(e) {
   if (column == getColumn(BARCODE)) {
     barcodeChanged(e.range.getRow());
   }
-  else if (column == getColumn(DECISION)) {
-    decisionChanged(e.range.getRow());
-  }
 }
 
 function getColumn(text) {
@@ -325,16 +311,6 @@ function commitWriteToRow(row) {
 
 function initDecision(row) {
   SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION)).setDataValidation(DECISIONS_RULE);
-}
-
-function decisionChanged(row) {
-  const noteCell = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION_NOTE));
-  noteCell.clear({contentsOnly: true, validationsOnly: true});
-  const decision = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION)).getValue();
-  const rule = RULES.get(decision);
-  if (rule) {
-    noteCell.setDataValidation(rule);
-  }
 }
 
 function processDecisions() {
