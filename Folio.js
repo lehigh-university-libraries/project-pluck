@@ -3,13 +3,10 @@ const FOLIO_CACHE_TIME = 60 * 30; // 30m
 const ITEM_STATUSES = [
   'Available',
   'Awaiting delivery',
-  'Declared lost',
   'In process',
   'In process (non-requestable)',
   'In transit',
   'Intellectual item',
-  'Long missing',
-  'Lost and paid',
   'Missing',
   'Restricted',
   'Unavailable',
