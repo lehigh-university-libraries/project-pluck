@@ -30,6 +30,9 @@ const KILL_SWITCH_VALUE = "Delete this to kill job.";
 function initKillSwitch() {
   PropertiesService.getScriptProperties().setProperty(KILL_SWITCH_KEY, KILL_SWITCH_VALUE);
 }
+function flipKillSwitch() {
+  PropertiesService.getScriptProperties().deleteProperty(KILL_SWITCH_KEY);
+}
 function killSwitchFlipped() {
   const value = PropertiesService.getScriptProperties().getProperty(KILL_SWITCH_KEY);
   const flipped = (value == null);

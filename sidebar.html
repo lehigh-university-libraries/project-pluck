@@ -67,6 +67,10 @@
         <div class="block form-group">
           <input type="button" class="action" id="init_sheet" value="Load Items" onclick="initSheetForLocation()" />
         </div>
+
+        <div class="block form-group">
+          <input type="button" class="action" id="stop_loading" value="Stop Loading" onclick="stopLoading()" />
+        </div>
       </fieldset>
       <br />
 
@@ -142,6 +146,25 @@
             'environment': environment,
             'location_id': location_id,
           });
+      }
+
+      function stopLoading() {
+        function onSuccess() {
+          console.info("stop loading succeeded.");
+          $("#stop_loading").removeAttr("disabled");
+        }
+
+        function onFailure(error) {
+          console.info("stop loading failed.");
+          alert("Failed with error: " + error);
+          $("#stop_loading").removeAttr("disabled");
+        }
+
+        $("#stop_loading").attr("disabled", "disabled");
+        google.script.run
+          .withSuccessHandler(onSuccess)
+          .withFailureHandler(onFailure)
+          .stopLoading();
       }
 
       function processDecisions() {
