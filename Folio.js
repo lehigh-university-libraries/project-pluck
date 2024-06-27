@@ -6,11 +6,9 @@ const ITEM_STATUSES = [
   'In process',
   'In process (non-requestable)',
   'In transit',
-  'Intellectual item',
   'Missing',
   'Restricted',
   'Unavailable',
-  'Unknown',
 ];
 
 function loadItemForBarcode(barcode, holdingsRecord, instance, circulations) {
