@@ -23,7 +23,12 @@ function loadVolumesBrief(oclcNumber) {
 }
 
 function parseHathiEbook(item) {
-  return item?.hathi?.items?.length > 0;
+  const items = item?.hathi?.items ?? [];
+  const rightsCodes = items
+    .map((item) => item['rightsCode'])
+    .filter((value, index, array) => {return array.indexOf(value) == index});
+  const rightsCodesString = rightsCodes.join(', ');
+  return rightsCodesString;
 }
 
 function queryHathiGet(url) {
