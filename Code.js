@@ -85,6 +85,9 @@ const RETENTION_IDS = [
 
 const DECISION_NOTE_ITEM_TYPE = 'Project Pluck Decision';
 
+const MISSING_CHECK_IN_NOTE_TYPE = 'Check in';
+const MISSING_CHECK_IN_NOTE_TEXT = 'Marked as missing. Send to cataloging.';
+
 const FACULTY_AUTHOR_NOTE_TEXT = "Lehigh Faculty Author Publication";
 const LEGACY_CIRC_COUNT_NOTE_TYPE_ID = '8f26b475-d7e3-4577-8bd0-c3d3bf44f73b';
 const OCLC_NUMBER_IDENTIFIER_TYPE_ID = '439bfbae-75bc-4f74-9fc7-b2a2d47ce3ef';
@@ -356,6 +359,14 @@ function processDecision(row) {
     item['notes'].push({
       itemNoteTypeId: DECISION_NOTE_TYPE_ID,
       note: decisionNote,
+      staffOnly: true,
+    });
+  }
+
+  if (MISSING == decision) {
+    item['circulationNotes'].push({
+      noteType: MISSING_CHECK_IN_NOTE_TYPE,
+      note: MISSING_CHECK_IN_NOTE_TEXT,
       staffOnly: true,
     });
   }
