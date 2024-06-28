@@ -249,6 +249,7 @@ function writeHeaders() {
 function writeTabName(locationId) {
   let code = LOCATIONS[locationId]?.['code'];
   SpreadsheetApp.getActiveSheet().setName(code);
+  PropertiesService.getScriptProperties().setProperty('lastSheetName', SpreadsheetApp.getActiveSheet().getSheetName());
 }
 
 function onEdit(e) {
