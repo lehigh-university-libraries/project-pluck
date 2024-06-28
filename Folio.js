@@ -2,7 +2,6 @@ const FOLIO_CACHE_TIME = 60 * 30; // 30m
 
 const ITEM_STATUSES = [
   'Available',
-  'Awaiting delivery',
   'In process',
   'In process (non-requestable)',
   'In transit',
