@@ -74,20 +74,20 @@
       </fieldset>
       <br />
 
-      <fieldset id="process_decisions">
-        <legend>Process Decisions</legend>
+      <fieldset>
+        <legend>Add Retention Decisions</legend>
 
         <div class="block form-group">
-          <input type="button" class="action" id="process_decisions" value="Decide Selected Rows" onclick="processDecisions()" />
+          <input type="button" class="action" id="add_decisions" value="Add Decisions for Selected Rows" onclick="addDecisions()" />
         </div>
       </fieldset>
       <br />
 
-      <fieldset id="process_withdrawals">
-        <legend>Process Withdrawals</legend>
+      <fieldset>
+        <legend>Process Final State</legend>
 
         <div class="block form-group">
-          <input type="button" class="action" id="process_withdrawals" value="Withdraw Selected Rows" onclick="processWithdrawals()" />
+          <input type="button" class="action" id="process_final_states" value="Process Selected Rows" onclick="processFinalStates()" />
         </div>
       </fieldset>
       <br />
@@ -167,42 +167,42 @@
           .stopLoading();
       }
 
-      function processDecisions() {
+      function addDecisions() {
         function onSuccess() {
-          console.info("process decisions succeeded.");
-          $("#process_decisions").removeAttr("disabled");
+          console.info("add decisions succeeded.");
+          $("#add_decisions").removeAttr("disabled");
         }
 
         function onFailure(error) {
-          console.info("process decisions failed.");
+          console.info("add decisions failed.");
           alert("Failed with error: " + error);
-          $("#process_decisions").removeAttr("disabled");
+          $("#add_decisions").removeAttr("disabled");
         }
 
-        $("#process_decisions").attr("disabled", "disabled");
+        $("#add_decisions").attr("disabled", "disabled");
         google.script.run
           .withSuccessHandler(onSuccess)
           .withFailureHandler(onFailure)
-          .processDecisions();
+          .addDecisions();
       }
 
-      function processWithdrawals() {
+      function processFinalStates() {
         function onSuccess() {
-          console.info("process withdrawals succeeded.");
-          $("#process_withdrawals").removeAttr("disabled");
+          console.info("process final states succeeded.");
+          $("#process_final_states").removeAttr("disabled");
         }
 
         function onFailure(error) {
-          console.info("process withdrawals failed.");
+          console.info("process final states failed.");
           alert("Failed with error: " + error);
-          $("#process_withdrawals").removeAttr("disabled");
+          $("#process_final_states").removeAttr("disabled");
         }
 
-        $("#process_withdrawals").attr("disabled", "disabled");
+        $("#process_final_states").attr("disabled", "disabled");
         google.script.run
           .withSuccessHandler(onSuccess)
           .withFailureHandler(onFailure)
-          .processWithdrawals();
+          .processFinalStates();
       }
 
     </script>

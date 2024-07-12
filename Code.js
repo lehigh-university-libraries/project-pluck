@@ -19,9 +19,9 @@ const ITEM_EFFECTIVE_LOCATION_NAME = 'item_effective_location_name';
 const HOLDINGS_PERMANENT_LOCATION_NAME = 'holdings_permanent_location_name';
 const MATERIAL_TYPE = 'material_type';
 const DECISION = 'Decision';
-const DECISION_NOTE = 'Decision Note';
-const SAVE_STATUS = 'Save Status';
-const WITHDRAW_STATUS = 'Withdraw Status';
+const DECISION_ADDENDUM = 'Decision Note';
+const ADD_DECISION_STATUS = 'Add Decision Status';
+const PROCESS_FINAL_STATE_STATUS = 'Process Final State Status';
 
 const HEADERS = [
   BARCODE,
@@ -44,9 +44,9 @@ const HEADERS = [
   HOLDINGS_PERMANENT_LOCATION_NAME,
   MATERIAL_TYPE,
   DECISION,
-  DECISION_NOTE,
-  SAVE_STATUS,
-  WITHDRAW_STATUS,
+  DECISION_ADDENDUM,
+  ADD_DECISION_STATUS,
+  PROCESS_FINAL_STATE_STATUS,
 ];
 
 const MAX_COLUMNS = HEADERS.length;
@@ -57,25 +57,29 @@ const PAUSE_TIME = 5000;
 const TAB_COMPLETE_COLOR = 'green';
 
 // decisions
-const WITHDRAW = 'to be withdrawn';
-const REMOTE = 'remote storage';
-const SC = 'possible sc material';
-const KEEP = 'keep';
-const MISSING = 'missing - book is not on shelf';
-const DECISIONS = [ WITHDRAW, REMOTE, SC, KEEP, MISSING] ;
+const WITHDRAW = 'withdrawn';
+const REMOTE = 'move to remote storage';
+const SC = 'move to special collections';
+const MISSING = 'missing';
+const NO_CHANGE = 'no change';
+const DECISIONS = [ WITHDRAW, REMOTE, SC, MISSING, NO_CHANGE] ;
 const DECISIONS_RULE = SpreadsheetApp.newDataValidation().requireValueInList(DECISIONS).build();
 
-const DECISION_CODES = new Map([
-  [WITHDRAW, 'to-withdraw'],
-  [REMOTE, 'for-rm'],
-  [SC, 'may-be-sc'],
-  [KEEP, 'decision-keep'],
+// final states
+const FINAL_STATE_KEEP = 'decision-keep-2024';
+const FINAL_STATE_WITHDRAW = 'decision-withdraw-2024';
+
+const DECISION_TO_FINAL_STATE = new Map([
+  [WITHDRAW, FINAL_STATE_WITHDRAW],
+  [REMOTE, FINAL_STATE_KEEP],
+  [SC, FINAL_STATE_KEEP],
+  [MISSING, FINAL_STATE_WITHDRAW],
+  [NO_CHANGE, FINAL_STATE_KEEP],
 ]);
 
 // status columns
-const SAVE_SUCCESS_MESSAGE = 'Saved';
-const WITHDRAW_PENDING_MESSAGE = 'Pending';
-const WITHDRAW_SUCCESS_MESSAGE = 'Withdrawn';
+const ADD_SUCCESS_MESSAGE = 'Added Note';
+const FINAL_STATE_SUCCESS_MESSAGE = 'Final State Processed';
 const SUCCESS_BACKGROUND = 'lightgreen';
 const FAILURE_BACKGROUND = 'lightcoral';
 
@@ -86,7 +90,7 @@ const RETENTION_IDS = [
 const DECISION_NOTE_ITEM_TYPE = 'Project Pluck Decision';
 
 const MISSING_CHECK_IN_NOTE_TYPE = 'Check in';
-const MISSING_CHECK_IN_NOTE_TEXT = 'Marked as missing. Send to cataloging.';
+const MISSING_CHECK_IN_NOTE_TEXT = 'Withdrawn.  Route to Cataloging.';
 
 const FACULTY_AUTHOR_NOTE_TEXT = "Lehigh Faculty Author Publication";
 const LEGACY_CIRC_COUNT_NOTE_TYPE_ID = '8f26b475-d7e3-4577-8bd0-c3d3bf44f73b';
@@ -101,8 +105,8 @@ function test() {
   // testGetLocations();
   // testInitSheetForLocation();
   // testEdit();
-  // testProcessDecision();
-  // testProcessWithdrawal();
+  // testAddDecision();
+  // testProcessFinalStates();
 }
 
 function testGetLocations() {
@@ -127,14 +131,14 @@ function testEdit() {
   });
 }
 
-function testProcessDecision() {
+function testAddDecision() {
   initFolio();
-  processDecision(SpreadsheetApp.getActiveSpreadsheet().getActiveCell().getRow());
+  addDecision(SpreadsheetApp.getActiveSpreadsheet().getActiveCell().getRow());
 }
 
-function testProcessWithdrawal() {
+function testProcessFinalStates() {
   initFolio();
-  processWithdrawal(SpreadsheetApp.getActiveSpreadsheet().getActiveCell().getRow());
+  processFinalStates(SpreadsheetApp.getActiveSpreadsheet().getActiveCell().getRow());
 }
 
 function onOpen() {
@@ -321,14 +325,14 @@ function initDecision(row) {
   SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION)).setDataValidation(DECISIONS_RULE);
 }
 
-function processDecisions() {
+function addDecisions() {
   initFolio();
-  processSelectedRows(processDecision);
+  processSelectedRows(addDecision);
 }
 
-function processWithdrawals() {
+function processFinalStates() {
   initFolio();
-  processSelectedRows(processWithdrawal);
+  processSelectedRows(processFinalState);
 }
 
 function processSelectedRows(callback) {
@@ -343,24 +347,47 @@ function processSelectedRows(callback) {
   }
 }
 
-function processDecision(row) {
-  console.log("processing decision for row " + row);
+function addDecision(row) {
+  console.log("adding decision for row " + row);
   const item = loadItemForRow(row);
 
   const decision = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION)).getValue();
-  const statisticalCode = DECISION_CODES.get(decision);
-  const statisticalCodeId = DECISION_CODE_TO_ID[statisticalCode];
-  if (statisticalCodeId) {
-    item['statisticalCodeIds'].push(statisticalCodeId);
+  const now = new Date().toString();
+  const decisionAddendum = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION_ADDENDUM)).getValue();
+  let decisionNote = `${decision} : ${now}`;
+  if (decisionAddendum) {
+    decisionNote += `: ${decisionAddendum}`;
   }
+  item['notes'].push({
+    itemNoteTypeId: DECISION_NOTE_TYPE_ID,
+    note: decisionNote,
+    staffOnly: true,
+  });
 
-  const decisionNote = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION_NOTE)).getValue();
-  if (decisionNote) {
-    item['notes'].push({
-      itemNoteTypeId: DECISION_NOTE_TYPE_ID,
-      note: decisionNote,
-      staffOnly: true,
-    });
+  const error = putItem(item);
+  const addStatusCell = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(ADD_DECISION_STATUS));
+  if (error) {
+    addStatusCell.setValue(error);
+    addStatusCell.setBackground(FAILURE_BACKGROUND);
+  }
+  else {
+    addStatusCell.setValue(ADD_SUCCESS_MESSAGE);
+    addStatusCell.setBackground(SUCCESS_BACKGROUND);
+  }
+}
+
+function processFinalState(row) {
+  console.log("processing final state for row " + row);
+  const item = loadItemForRow(row, {holdingsRecord: true, instance: true});
+
+  const decision = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION)).getValue();
+  const finalStateCode = DECISION_TO_FINAL_STATE.get(decision);
+  const finalStateCodeId = DECISION_CODE_TO_ID[finalStateCode];
+  item['statisticalCodeIds'].push(finalStateCodeId);
+
+  if (finalStateCode == FINAL_STATE_WITHDRAW) {
+    item['status']['name'] = 'Withdrawn';
+    item['discoverySuppress'] = true;
   }
 
   if (MISSING == decision) {
@@ -371,62 +398,41 @@ function processDecision(row) {
     });
   }
 
-  const error = putItem(item);
-  const saveStatusCell = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(SAVE_STATUS));
-  if (error) {
-    saveStatusCell.setValue(error);
-    saveStatusCell.setBackground(FAILURE_BACKGROUND);
-  }
-  else {
-    saveStatusCell.setValue(SAVE_SUCCESS_MESSAGE);
-    saveStatusCell.setBackground(SUCCESS_BACKGROUND);
-
-    if (WITHDRAW == decision) {
-      const withdrawalStatusCell = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(WITHDRAW_STATUS));
-      withdrawalStatusCell.setValue(WITHDRAW_PENDING_MESSAGE);
-    }
-  }
-}
-
-function processWithdrawal(row) {
-  console.log("processing withdrawal for row " + row);
-  const item = loadItemForRow(row, {holdingsRecord: true, instance: true});
-
-  item['status']['name'] = 'Withdrawn';
-  item['discoverySuppress'] = true;
   let error = putItem(item);
-  const withdrawalStatusCell = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(WITHDRAW_STATUS));
+  const processFinalStateCell = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(PROCESS_FINAL_STATE_STATUS));
   if (error) {
-    withdrawalStatusCell.setValue('Error withdrawing item: ' + error);
-    withdrawalStatusCell.setBackground(FAILURE_BACKGROUND);
+    processFinalStateCell.setValue('Error processing final state for item: ' + error);
+    processFinalStateCell.setBackground(FAILURE_BACKGROUND);
     return;
   }
-
-  if (!hasUnsuppressedItems(item.holdingsRecord, item)) {
-    console.log("suppress holdings record");
-    item.holdingsRecord['discoverySuppress'] = true;
-    error = putHoldingsRecord(item.holdingsRecord);
-    if (error) {
-      withdrawalStatusCell.setValue('Error withdrawing holdings record: ' + error);
-      withdrawalStatusCell.setBackground(FAILURE_BACKGROUND);
-      return;
-    }
   
-    if (!hasUnsuppressedHoldingsRecords(item.instance, item.holdingsRecord)) {
-      console.log("suppress instance");
-      item.instance['discoverySuppress'] = true;
-      item.instance['statusId'] = INSTANCE_STATUS_WITHDRAWN_ID;
-      error = putInstance(item.instance);
+  if (finalStateCode == FINAL_STATE_WITHDRAW) {
+    if (!hasUnsuppressedItems(item.holdingsRecord, item)) {
+      console.log("suppress holdings record");
+      item.holdingsRecord['discoverySuppress'] = true;
+      error = putHoldingsRecord(item.holdingsRecord);
       if (error) {
-        withdrawalStatusCell.setValue('Error withdrawing instance: ' + error);
-        withdrawalStatusCell.setBackground(FAILURE_BACKGROUND);
+        processFinalStateCell.setValue('Error withdrawing holdings record: ' + error);
+        processFinalStateCell.setBackground(FAILURE_BACKGROUND);
         return;
+      }
+    
+      if (!hasUnsuppressedHoldingsRecords(item.instance, item.holdingsRecord)) {
+        console.log("suppress instance");
+        item.instance['discoverySuppress'] = true;
+        item.instance['statusId'] = INSTANCE_STATUS_WITHDRAWN_ID;
+        error = putInstance(item.instance);
+        if (error) {
+          processFinalStateCell.setValue('Error withdrawing instance: ' + error);
+          processFinalStateCell.setBackground(FAILURE_BACKGROUND);
+          return;
+        }
       }
     }
   }
 
-  withdrawalStatusCell.setValue(WITHDRAW_SUCCESS_MESSAGE);
-  withdrawalStatusCell.setBackground(SUCCESS_BACKGROUND);
+  processFinalStateCell.setValue(FINAL_STATE_SUCCESS_MESSAGE);
+  processFinalStateCell.setBackground(SUCCESS_BACKGROUND);
 }
 
 function loadItemForRow(row, {holdingsRecord = false, instance = false, circulations = false} = {}) {
