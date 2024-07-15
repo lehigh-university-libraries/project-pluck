@@ -289,7 +289,7 @@ function barcodeChanged(row) {
 function writeItemToSheet(row, item) {
   initWriteToRow();
   writeToRow(getColumn(BARCODE), item['barcode']);
-  writeToRow(getColumn(EFFECTIVE_CALL_NUMBER), item['effectiveShelvingOrder']);
+  writeToRow(getColumn(EFFECTIVE_CALL_NUMBER), item['effectiveCallNumberComponents']?.['callNumber']);
   writeToRow(getColumn(TITLE), item['title']);
   writeToRow(getColumn(CONTRIBUTOR), item['contributorNames']?.[0]?.['name']);
   writeToRow(getColumn(PUBLICATION_DATE), item.instance['publication']?.[0]?.['dateOfPublication']);
