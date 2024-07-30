@@ -104,7 +104,6 @@ var LOCATIONS;
 function test() {
   // testGetLocations();
   // testInitSheetForLocation();
-  // testEdit();
   // testAddDecision();
   // testProcessFinalStates();
 }
@@ -119,15 +118,6 @@ function testInitSheetForLocation() {
   initSheetForLocation({
     'environment': 'test',
     'location_id': '460df2a6-6146-4749-9ff0-a0d0730e0214',
-  });
-}
-
-function testEdit() {
-  initFolio();
-  onEdit({
-    source : SpreadsheetApp.getActiveSpreadsheet(),
-    range : SpreadsheetApp.getActiveSpreadsheet().getActiveCell(),
-    value : SpreadsheetApp.getActiveSpreadsheet().getActiveCell().getValue(),
   });
 }
 
@@ -260,13 +250,6 @@ function writeTabName(locationId) {
   PropertiesService.getScriptProperties().setProperty('lastSheetName', SpreadsheetApp.getActiveSheet().getSheetName());
 }
 
-function onEdit(e) {
-  var column = e.range.getColumn();
-  if (column == getColumn(BARCODE)) {
-    barcodeChanged(e.range.getRow());
-  }
-}
-
 function getColumn(text) {
   let index = HEADERS.findIndex((element) => element == text);
   if (index < 0) {
@@ -277,14 +260,6 @@ function getColumn(text) {
 
 function getColumnLetter(text) {
   return String.fromCharCode(64 + getColumn(text))
-}
-
-function barcodeChanged(row) {
-  console.log("barcode changed in row " + row);
-  const item = loadItemForRow(row, {holdingsRecord: true, instance: true});
-  item.circulations = loadCirculationLogs(item, 'Checked out');
-  writeItemToSheet(row, item);
-  initDecision(row);
 }
 
 function writeItemToSheet(row, item) {
