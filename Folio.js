@@ -92,7 +92,7 @@ function loadInstanceStatusWithdrawnId() {
 
 function loadItems(locationId, offset, count) {
   const statusNamesString = ITEM_STATUSES.map((status) => `"${status}"`).join(' OR ')
-  const url = `/inventory/items?query=${encodeURIComponent(`effectiveLocationId=="${locationId}" AND (status.name = (${statusNamesString})) sortby effectiveCallNumberComponents.callNumber`)}&limit=${count}&offset=${offset}`;
+  const url = `/inventory/items?query=${encodeURIComponent(`effectiveLocationId=="${locationId}" AND (instance.discoverySuppress=="false") AND (status.name = (${statusNamesString})) sortby effectiveCallNumberComponents.callNumber`)}&limit=${count}&offset=${offset}`;
   const items = queryFolioGet(url)['items'];
   return items;
 }
