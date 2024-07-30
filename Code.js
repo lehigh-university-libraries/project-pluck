@@ -149,6 +149,7 @@ function onOpen() {
 }
 
 function showSidebar() {
+  clearCache();
   var html = HtmlService.createHtmlOutputFromFile('sidebar')
     .setTitle('Project Pluck')
     .setWidth(500);

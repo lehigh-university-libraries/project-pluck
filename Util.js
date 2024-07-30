@@ -23,6 +23,15 @@ function getOrCreate(cacheKey, creationFunction, cacheTime) {
   }
   return value;
 }
+function clearCache() {
+  CacheService.getScriptCache().removeAll([
+    'authenticate', 
+    'loadLocations', 
+    'loadStatisticalCodes', 
+    'loadDecisionNoteTypeId', 
+    'loadInstanceStatusWithdrawnId',
+  ]);
+}
 
 // Kill switch for long-running tasks
 const KILL_SWITCH_KEY = "killSwitch";
