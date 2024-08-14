@@ -45,7 +45,7 @@ function queryHathiGet(url) {
   }
   else {
     const responseData = JSON.parse(responseText);
-    console.log("response data: ", responseData);
+    // console.log("response data: ", responseData);
     return responseData;
   }
 }
