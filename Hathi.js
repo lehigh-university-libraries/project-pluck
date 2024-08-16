@@ -6,7 +6,7 @@ function initHathi() {
 }
 
 function enrichFromHathi(item) {
-  const oclcNumber = parseOclcNumber(item);
+  const oclcNumber = parseOclcNumber(item, true);
   if (!oclcNumber) {
     console.log("Cannot enrich from Hathi, no OCLC num.")
     return;
