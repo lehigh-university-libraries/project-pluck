@@ -51,6 +51,60 @@ function killSwitchFlipped() {
   return flipped;
 }
 
+// UptimeRobot monitoring
+const UPTIME_ROBOT_API_KEY = "uptimeRobotApiKey";
+const UPTIME_ROBOT_MONITOR_ID = "uptimeRobotMonitorId";
+const UPTIME_ROBOT_EDIT_MONITOR_URL = "https://api.uptimerobot.com/v2/editMonitor";
+const UPTIME_ROBOT_HEARTBEAT_URL = "https://heartbeat.uptimerobot.com/";
+const UPTIME_ROBOT_HEARTBEAT_KEY = "uptimeRobotHeartbeatKey";
+function startMonitoring() {
+  sendHeartbeat();
+  changeMonitoring(1);
+}
+function stopMonitoring() {
+  changeMonitoring(0);
+}
+function sendHeartbeat() {
+  const heartbeatKey = PropertiesService.getScriptProperties().getProperty(UPTIME_ROBOT_HEARTBEAT_KEY);
+  const response = UrlFetchApp.fetch(UPTIME_ROBOT_HEARTBEAT_URL + heartbeatKey, {
+    'method': 'post'
+  });
+  const responseText = response.getContentText();
+  if (response.getResponseCode() < 200 || response.getResponseCode() >= 400) {
+    console.error(`UptimeRobot heartbeat: Error response: ${response.getResponseCode()}, ${responseText}`);
+    return null;
+  }
+  else {
+    const responseData = JSON.parse(responseText);
+    console.log("UptimeRobot heartbeat sent.");
+    return responseData;
+  }
+
+}
+function changeMonitoring(newStatus) {
+  const apiKey = PropertiesService.getScriptProperties().getProperty(UPTIME_ROBOT_API_KEY);
+  const monitorId = PropertiesService.getScriptProperties().getProperty(UPTIME_ROBOT_MONITOR_ID);
+  const formData = {
+    'api_key': apiKey,
+    'id': monitorId,
+    'status': newStatus
+  }
+  const response = UrlFetchApp.fetch(UPTIME_ROBOT_EDIT_MONITOR_URL, {
+    'method': 'post',
+    'payload': formData
+  });
+  const responseText = response.getContentText();
+  if (response.getResponseCode() < 200 || response.getResponseCode() >= 400) {
+    console.error(`UptimeRobot: Error response: ${response.getResponseCode()}, ${responseText}`);
+    return null;
+  }
+  else {
+    const responseData = JSON.parse(responseText);
+    console.log("UptimeRobot monitoring status is now " + newStatus);
+    return responseData;
+  }
+}
+
 // Email
 function email(subject, body) {
   MailApp.sendEmail({

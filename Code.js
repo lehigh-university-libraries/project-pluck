@@ -175,8 +175,11 @@ function loadMoreItems() {
 
 function tryLoadMoreItems(sheetName) {
   if (killSwitchFlipped()) {
+    stopMonitoring();
     return;
   }
+
+  startMonitoring();
 
   const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
 
@@ -198,6 +201,7 @@ function tryLoadMoreItems(sheetName) {
     console.log("Loaded all items for this sheet");
     SpreadsheetApp.getActiveSheet().setTabColor(TAB_COMPLETE_COLOR);
     email(`${sheetName} load complete`, `Google Sheets is done loading the items ${sheetName}.`);
+    stopMonitoring();
     return;
   }
 
@@ -218,7 +222,8 @@ function tryLoadMoreItems(sheetName) {
     }
   }
 
-  scheduleLoadMoreItems(); 
+  scheduleLoadMoreItems();
+  stopMonitoring();
 }
 
 function scheduleLoadMoreItems() {
