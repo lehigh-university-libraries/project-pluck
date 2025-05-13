@@ -7,7 +7,7 @@ Armed with that information, Lehigh designed and built a tool around these speci
 
 ## FOLIO, OCLC WorldCat and HathiTrust Data Points
 
-<img align="right" src="readme/example-data.png" alt="Headings and sample rows and columns of a Project Pluck spreadsheet">
+<img src="readme/example-data.png" alt="Headings and sample rows and columns of a Project Pluck spreadsheet">
 
 The following data points are loaded into each spreadsheet tab, for all of the items in a given location.
 
