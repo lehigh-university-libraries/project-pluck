@@ -56,7 +56,7 @@ const FLUSH_RATE = 5;
 const PAUSE_TIME = 5000;
 const TAB_COMPLETE_COLOR = 'green';
 
-// decisions
+// Decisions
 const WITHDRAW = 'withdrawn';
 const REMOTE = 'move to remote storage';
 const SC = 'move to special collections';
@@ -65,7 +65,7 @@ const NO_CHANGE = 'no change';
 const DECISIONS = [ WITHDRAW, REMOTE, SC, MISSING, NO_CHANGE] ;
 const DECISIONS_RULE = SpreadsheetApp.newDataValidation().requireValueInList(DECISIONS).build();
 
-// final states
+// Final States
 const FINAL_STATE_KEEP = 'decision-keep-2024';
 const FINAL_STATE_WITHDRAW = 'decision-withdraw-2024';
 
@@ -83,10 +83,12 @@ const FINAL_STATE_SUCCESS_MESSAGE = 'Final State Processed';
 const SUCCESS_BACKGROUND = 'lightgreen';
 const FAILURE_BACKGROUND = 'lightcoral';
 
+// Retention Statistical Codes
 const RETENTION_IDS = [
   'ba16cd17-fb83-4a14-ab40-23c7ffa5ccb5',
 ]
 
+// Decision Note
 const DECISION_NOTE_ITEM_TYPE = 'Project Pluck Decision';
 
 const MISSING_CHECK_IN_NOTE_TYPE = 'Check in';
