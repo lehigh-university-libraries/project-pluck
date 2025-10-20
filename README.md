@@ -5,6 +5,13 @@ A Google Sheets-based application that aggregates item data from several sources
 > In the Fall of 2024 Lehigh University Libraries started a collection weeding plan that was dubbed “Project Pluck”. The idea behind Project Pluck was to create a process to help librarians carefully maintain the vitality and health of the physical collection by assessing and recording decisions concerning retention and withdrawal of physical materials. Because a project like this crosses library domains a committee was formed to assess the needs of each of the library teams. That committee designed a workflow that attempted to address the many scenarios that arise. The committee also wanted a process that could be used on a yearly basis, throughout our libraries. <br><br>
 Armed with that information, Lehigh designed and built a tool around these specifications that guides library staff throughout the process. The tool consolidates relevant data for each bibliographic record from FOLIO, WorldCat, and HathiTrust APIs into Google Sheets spreadsheets where the potential withdrawals can be reviewed, and decisions made.  Using this tool has centralized and streamlined workflows, increased accuracy, and writes informative data points to FOLIO that will assist with future retention decisions.
 
+## WOLFcon 2025 Presentation
+
+See the [WOLFcon 2025](https://wolfcon2025.sched.com/) recorded [presentation](https://www.youtube.com/watch?v=DuNw5IQ21Dc) about this process and tool.
+
+[![Slide reading "Potential Weeding Outcomes"](https://img.youtube.com/vi/DuNw5IQ21Dc/0.jpg)](https://www.youtube.com/watch?v=DuNw5IQ21Dc)
+
+
 ## FOLIO, OCLC WorldCat and HathiTrust Data Points
 
 <img src="readme/example-data.png" alt="Headings and sample rows and columns of a Project Pluck spreadsheet">
@@ -117,13 +124,6 @@ Create the specified FOLIO inventory settings, customizing as needed:
 
 1. Configure the PALCI_OCLC_SYMBOLS list of symbols in Oclc.js.  The application determines consortium (PALCI) membership by looking for these specific institution codes present in the list of holdings institutions returned by the OCLC API.
 
+## Shelf Reading / Inventory
 
-## More Information
-
-See the [WOLFcon 2025](https://wolfcon2025.sched.com/) recorded [presentation](https://www.youtube.com/watch?v=DuNw5IQ21Dc) about this process and tool.
-
-[![Slide reading "Potential Weeding Outcomes"](https://img.youtube.com/vi/DuNw5IQ21Dc/0.jpg)](https://www.youtube.com/watch?v=DuNw5IQ21Dc)
-
-### Shelf Reading / Inventory
-
-The presentation above includes a "Lesson Learned" that we had to conduct a physical inventory before we could make reliable weeding decisions.  We built a separate [FOLIO Offline Shelf Reading](https://github.com/lehigh-university-libraries/folio-offline-shelf-reading) tool to support that inventory project.
+The [WOLFcon 2025 recorded presentation](https://www.youtube.com/watch?v=DuNw5IQ21Dc) above includes a "Lesson Learned" that we had to conduct a physical inventory before we could make reliable weeding decisions.  We built a separate [FOLIO Offline Shelf Reading](https://github.com/lehigh-university-libraries/folio-offline-shelf-reading) tool to support that inventory project.
