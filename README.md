@@ -120,4 +120,10 @@ Create the specified FOLIO inventory settings, customizing as needed:
 
 ## More Information
 
-See the (upcoming) [WOLFcon 2025](https://wolfcon2025.sched.com/) presentation about this process.
+See the [WOLFcon 2025](https://wolfcon2025.sched.com/) recorded [presentation](https://www.youtube.com/watch?v=DuNw5IQ21Dc) about this process and tool.
+
+[![Slide reading "Potential Weeding Outcomes"](https://img.youtube.com/vi/DuNw5IQ21Dc/0.jpg)](https://www.youtube.com/watch?v=DuNw5IQ21Dc)
+
+### Shelf Reading / Inventory
+
+The presentation above includes a "Lesson Learned" that we had to conduct a physical inventory before we could make reliable weeding decisions.  We built a separate [FOLIO Offline Shelf Reading](https://github.com/lehigh-university-libraries/folio-offline-shelf-reading) tool to support that inventory project.
