@@ -52,17 +52,22 @@ function killSwitchFlipped() {
 }
 
 // UptimeRobot monitoring
+const USE_MONITORING = true;
 const UPTIME_ROBOT_API_KEY = "uptimeRobotApiKey";
 const UPTIME_ROBOT_MONITOR_ID = "uptimeRobotMonitorId";
 const UPTIME_ROBOT_EDIT_MONITOR_URL = "https://api.uptimerobot.com/v2/editMonitor";
 const UPTIME_ROBOT_HEARTBEAT_URL = "https://heartbeat.uptimerobot.com/";
 const UPTIME_ROBOT_HEARTBEAT_KEY = "uptimeRobotHeartbeatKey";
 function startMonitoring() {
-  sendHeartbeat();
-  changeMonitoring(1);
+  if (USE_MONITORING) {
+    sendHeartbeat();
+    changeMonitoring(1);
+  }
 }
 function stopMonitoring() {
-  changeMonitoring(0);
+  if (USE_MONITORING) {
+    changeMonitoring(0);
+  }
 }
 function sendHeartbeat() {
   const heartbeatKey = PropertiesService.getScriptProperties().getProperty(UPTIME_ROBOT_HEARTBEAT_KEY);
