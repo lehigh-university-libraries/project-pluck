@@ -95,7 +95,7 @@ Decisions and optional notes for each item are stored in FOLIO.
 1. Under Libraries, add
     1. [OAuth2](https://github.com/googleworkspace/apps-script-oauth2): 1B7FSrk5Zi6L1rSxxTDgDEUsPzlukDsi4KGuTMorsTQHhGBzBkMun4iDF
 1. Add several Script Properties in the Apps Script settings:
-    1. `username` and `password`: FOLIO credentials to a user account with these permissions:
+    1. `username` and `password` (see encoding note below): FOLIO credentials to a user account with these permissions:
         ```
         Circulation log: View
         Inventory: View, create, edit holdings
@@ -103,6 +103,7 @@ Decisions and optional notes for each item are stored in FOLIO.
         Inventory: View, create, edit items
         (you also need permission to view [edit is not required] statistical codes, item note types, and instance statuses)
         ```
+        1. Note: The password should first be base64-encoded, for obfuscation. Use the Linux `base64` utility (`echo "mypassword" | base64`), or a web tool like [base64encode](https://www.base64encode.org/), etc.
     1. `oclcId` and `oclcSecret`: [API "WSkey"](https://www.oclc.org/developer/api/keys.en.html) to use the OCLC [WorldCat Search API v.2](https://developer.api.oclc.org/wcv2).
     1. `uptimeRobotApiKey`, `uptimeRobotHeartbeatKey`, `uptimeRobotMonitorId`: [UptimeRobot](https://uptimerobot.com/) monitoring for when the script fails and can't be automatically restarted, so you can do so manually.
 
