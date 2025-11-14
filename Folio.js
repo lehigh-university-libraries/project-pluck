@@ -10,6 +10,15 @@ const ITEM_STATUSES = [
   'Unavailable',
 ];
 
+if (typeof FOLIOAUTHLIBRARY === 'undefined') {
+  FOLIOAUTHLIBRARY = {
+    getBaseOkapi: getBaseOkapi,
+    authenticateAndSetHeaders: authenticateAndSetHeaders,
+    getHttpGetOptions: getHttpGetOptions,
+    getHttpGetHeaders: getHttpGetHeaders,
+  }
+}
+
 function loadItemForBarcode(barcode, holdingsRecord, instance, circulations) {
   const item = loadItem(barcode);
   if (!item) {

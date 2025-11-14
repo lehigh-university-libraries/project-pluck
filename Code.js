@@ -150,7 +150,7 @@ function showSidebar() {
 }
 
 function getLocations(config) {
-  initFolio();
+  initFolio(config);
   return Object.entries(LOCATIONS).sort((a, b) => {return a['code'] < b['code']});
 }
 
