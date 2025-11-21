@@ -247,7 +247,11 @@ function writeHeaders() {
   SpreadsheetApp.getActiveSheet().getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
   SpreadsheetApp.getActiveSheet().setFrozenRows(1);
 
-  let column = getColumnLetter(PALCI_HOLDINGS);
+  // Text barcode -- allow leading zeroes
+  let column = getColumnLetter(BARCODE);
+  SpreadsheetApp.getActiveSheet().getRange(`${column}1:${column}`).setNumberFormat("@");
+
+  column = getColumnLetter(PALCI_HOLDINGS);
   SpreadsheetApp.getActiveSheet().getRange(`${column}1:${column}`).setHorizontalAlignment("right");
 }
 
