@@ -36,3 +36,7 @@ function processFinalStates() {
 function initProperties() {
   ProjectPluck.initProperties(PropertiesService.getScriptProperties());
 }
+
+function getEnvironment() {
+  return PropertiesService.getScriptProperties().getProperty("environment");
+}

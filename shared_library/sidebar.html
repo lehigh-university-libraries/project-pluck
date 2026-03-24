@@ -98,6 +98,30 @@
 
 
     <script>
+      $(function() {
+        function onGetEnvironmentSuccess(environment) {
+          if (environment) {
+            $(`#environment input[value="${environment}"]`).prop('checked', true);
+            lockEnvironment();
+            initEnvironment();
+          }
+        }
+
+        function onGetEnvironmentFailure(error) {
+          console.log("Failed to get environment: ", error);
+        }
+
+        google.script.run
+          .withSuccessHandler(onGetEnvironmentSuccess)
+          .withFailureHandler(onGetEnvironmentFailure)
+          .getEnvironment();
+      });
+
+      function lockEnvironment() {
+        $('#environment input[type=radio]').prop('disabled', true);
+        $('#init_environment').prop('disabled', true);
+      }
+
       function initEnvironment() {
         function onSuccess(locations) {
           console.info("locations: " + locations);
@@ -110,10 +134,11 @@
           }
         }
 
-        function onFailure(locations) {
+        function onFailure(error) {
           console.log("Failed with error: ", error);
           alert("Failed with error: " + error);
         }
+
         let environment = $("#environment input[type=radio]:checked").val();
         console.log("initEnvironment: environment is " + environment);
         let locations = google.script.run
