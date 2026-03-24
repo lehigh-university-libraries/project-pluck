@@ -6,8 +6,8 @@ const PALCI_OCLC_SYMBOLS = ['AVL','BEA','BMC','PBU','PBE','CRC','PMC','HHC','PBB
 const PALCI_OCLC_SYMBOLS_SET = new Set(PALCI_OCLC_SYMBOLS);
 
 function initOclc() {
-  const id = PropertiesService.getScriptProperties().getProperty('oclcId');
-  const secret = PropertiesService.getScriptProperties().getProperty('oclcSecret');
+  const id = properties.getProperty('oclcId');
+  const secret = properties.getProperty('oclcSecret');
 
   authenticateOclc(id, secret);
   // logTime('after OCLC init');
@@ -21,7 +21,7 @@ function authenticateOclc(id, secret) {
     .setClientId(id)
     .setClientSecret(secret)
     .setScope(WORLDCATSEARCH_SCOPES)
-    .setPropertyStore(PropertiesService.getScriptProperties());
+    .setPropertyStore(properties);
 }
 
 function enrichFromOclc(item) {

@@ -103,6 +103,9 @@ const INSTANCE_STATUS_WITHDRAWN_CODE = 'Withdrawn';
 var DECISION_CODE_TO_ID;
 var LOCATIONS;
 
+// Properties are limited to the current run of the script
+let properties = null;
+
 function test() {
   // testGetLocations();
   // testInitSheetForLocation();
@@ -133,6 +136,10 @@ function testProcessFinalStates() {
   processFinalStates(SpreadsheetApp.getActiveSpreadsheet().getActiveCell().getRow());
 }
 
+function initProperties(instanceProperties) {
+  properties = instanceProperties;
+}
+
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('Project Pluck')
@@ -149,15 +156,13 @@ function showSidebar() {
     .showSidebar(html);
 }
 
-function getLocations(config) {
-  initFolio(config);
+function getLocations() {
+  initFolio();
   return Object.entries(LOCATIONS).sort((a, b) => {return a['code'] < b['code']});
 }
 
-function initSheetForLocation(config) {
-  console.log("initSheetForLocation: ", config);
-  PropertiesService.getScriptProperties().setProperty("config", JSON.stringify(config));
-  PropertiesService.getScriptProperties().setProperty('lastSheetName', SpreadsheetApp.getActiveSheet().getSheetName());
+function initSheetForLocation() {
+  console.log("initSheetForLocation. config: ", properties);
 
   // logTime("start initSheetForLocation");
   initKillSwitch();
@@ -165,7 +170,7 @@ function initSheetForLocation(config) {
 }
 
 function loadMoreItems() {
-  const sheetName = PropertiesService.getScriptProperties().getProperty('lastSheetName');
+  const sheetName = properties.getProperty('lastSheetName');
   try {
     tryLoadMoreItems(sheetName);    
   }
@@ -183,8 +188,6 @@ function tryLoadMoreItems(sheetName) {
 
   startMonitoring();
 
-  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
-
   SpreadsheetApp.getActive().getSheetByName(sheetName).activate();
 
   initFolio();
@@ -192,7 +195,7 @@ function tryLoadMoreItems(sheetName) {
   initHathi();
   writeHeaders();
 
-  let locationId = config.location_id;
+  let locationId = properties.getProperty('location_id');
   writeTabName(locationId);
 
   let offset = SpreadsheetApp.getActiveSheet().getLastRow() - 1;
@@ -258,7 +261,8 @@ function writeHeaders() {
 function writeTabName(locationId) {
   let code = LOCATIONS[locationId]?.['code'];
   SpreadsheetApp.getActiveSheet().setName(code);
-  PropertiesService.getScriptProperties().setProperty('lastSheetName', SpreadsheetApp.getActiveSheet().getSheetName());
+
+  properties.setProperty('lastSheetName', SpreadsheetApp.getActiveSheet().getSheetName());
 }
 
 function getColumn(text) {

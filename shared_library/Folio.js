@@ -42,10 +42,7 @@ function enrichItem(item, holdingsRecord, instance, circulations) {
   // logTime('after FOLIO enrichment');
 }
 
-function initFolio(config = null) {
-  if (config) {
-    PropertiesService.getScriptProperties().setProperty("config", JSON.stringify(config));
-  }
+function initFolio() {
   getOrCreate('authenticate', authenticate, FOLIO_CACHE_TIME);
   LOCATIONS = getOrCreate('loadLocations', loadLocations, FOLIO_CACHE_TIME);
   DECISION_CODE_TO_ID = getOrCreate('loadStatisticalCodes', loadStatisticalCodes, FOLIO_CACHE_TIME);
@@ -55,12 +52,13 @@ function initFolio(config = null) {
 }
 
 function authenticate() {
-  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
-  config.username = PropertiesService.getScriptProperties().getProperty("username");
-  config.password = Utilities.newBlob(Utilities.base64Decode(
-    PropertiesService.getScriptProperties().getProperty("password")))
-    .getDataAsString();
-  FOLIOAUTHLIBRARY.authenticateAndSetHeaders(config);
+  const folioConfig = {
+    'environment': properties.getProperty("environment"),
+    'username': properties.getProperty("username"),
+    'password': Utilities.newBlob(Utilities.base64Decode(properties.getProperty("password")))
+      .getDataAsString(),
+  };
+  FOLIOAUTHLIBRARY.authenticateAndSetHeaders(folioConfig);
   return true;
 }
 
@@ -223,10 +221,9 @@ function parseLocation(locationId) {
 }
 
 function queryFolioGet(url) {
-  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
-
   // execute query
-  const query = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) + url;
+  const environment = properties.getProperty("environment");
+  const query = FOLIOAUTHLIBRARY.getBaseOkapi(environment) + url;
   console.log('Executing GET query: ', query);
   const getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
   const response = UrlFetchApp.fetch(query, getOptions);
@@ -245,10 +242,9 @@ function queryFolioGet(url) {
 }
 
 function queryFolioPut(url, payload) {
-  const config = JSON.parse(PropertiesService.getScriptProperties().getProperty("config"));
-
   // execute query
-  const query = FOLIOAUTHLIBRARY.getBaseOkapi(config.environment) + url;
+  const environment = properties.getProperty("environment");
+  const query = FOLIOAUTHLIBRARY.getBaseOkapi(environment) + url;
   const payloadString = JSON.stringify(payload);
   console.log(`Executing PUT query with url ${url} and payload ${payloadString}`);
   const headers = FOLIOAUTHLIBRARY.getHttpGetHeaders();

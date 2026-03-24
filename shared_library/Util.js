@@ -37,13 +37,13 @@ function clearCache() {
 const KILL_SWITCH_KEY = "killSwitch";
 const KILL_SWITCH_VALUE = "Delete this to kill job.";
 function initKillSwitch() {
-  PropertiesService.getScriptProperties().setProperty(KILL_SWITCH_KEY, KILL_SWITCH_VALUE);
+  properties.setProperty(KILL_SWITCH_KEY, KILL_SWITCH_VALUE);
 }
 function flipKillSwitch() {
-  PropertiesService.getScriptProperties().deleteProperty(KILL_SWITCH_KEY);
+  properties.deleteProperty(KILL_SWITCH_KEY);
 }
 function killSwitchFlipped() {
-  const value = PropertiesService.getScriptProperties().getProperty(KILL_SWITCH_KEY);
+  const value = properties.getProperty(KILL_SWITCH_KEY);
   const flipped = (value == null);
   if (flipped) {
     console.log("kill switch flipped");
@@ -70,7 +70,7 @@ function stopMonitoring() {
   }
 }
 function sendHeartbeat() {
-  const heartbeatKey = PropertiesService.getScriptProperties().getProperty(UPTIME_ROBOT_HEARTBEAT_KEY);
+  const heartbeatKey = properties.getProperty(UPTIME_ROBOT_HEARTBEAT_KEY);
   const response = UrlFetchApp.fetch(UPTIME_ROBOT_HEARTBEAT_URL + heartbeatKey, {
     'method': 'post'
   });
@@ -87,8 +87,8 @@ function sendHeartbeat() {
 
 }
 function changeMonitoring(newStatus) {
-  const apiKey = PropertiesService.getScriptProperties().getProperty(UPTIME_ROBOT_API_KEY);
-  const monitorId = PropertiesService.getScriptProperties().getProperty(UPTIME_ROBOT_MONITOR_ID);
+  const apiKey = properties.getProperty(UPTIME_ROBOT_API_KEY);
+  const monitorId = properties.getProperty(UPTIME_ROBOT_MONITOR_ID);
   const formData = {
     'api_key': apiKey,
     'id': monitorId,
