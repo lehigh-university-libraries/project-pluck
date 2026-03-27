@@ -207,9 +207,10 @@ function tryLoadMoreItems(sheetName) {
     items = loadItemsFolio(locationId, offset, count);
   } else {
     console.log("Loading items in 'metadb' mode.");
+    let locationCode = LOCATIONS[locationId]?.['code'];
     let startCallNumberPrefix = properties.getProperty('start_call_number_prefix');
     let endCallNumberPrefix = properties.getProperty('end_call_number_prefix');
-    items = loadItemsMetadb(startCallNumberPrefix, endCallNumberPrefix, offset, count);
+    items = loadItemsMetadb(locationCode, startCallNumberPrefix, endCallNumberPrefix, offset, count);
   }
   console.log(`writing items to sheet with offset ${offset} and count ${count}`);
   if (items.length == 0) {

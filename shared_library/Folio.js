@@ -94,10 +94,11 @@ function loadInstanceStatusWithdrawnId() {
   return instanceStatus.id;
 }
 
-function loadItemsMetadb(startCallNumberPrefix, endCallNumberPrefix, offset, count) {
+function loadItemsMetadb(locationCode, startCallNumberPrefix, endCallNumberPrefix, offset, count) {
   const payload = {
     'url': 'https://raw.githubusercontent.com/lehigh-university-libraries/project-pluck/refs/heads/social-sciences/metadb/get_items_between_call_number_prefixes.sql',
     'params': {
+      'location_code': locationCode,
       'start_call_number_prefix': startCallNumberPrefix,
       'end_call_number_prefix': endCallNumberPrefix,
       'query_limit': String(count),
