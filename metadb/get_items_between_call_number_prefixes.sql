@@ -3,6 +3,7 @@
 DROP FUNCTION IF EXISTS get_items_between_call_number_prefixes;
 
 CREATE FUNCTION get_items_between_call_number_prefixes(
+    location_code TEXT,
     start_call_number_prefix TEXT,
     end_call_number_prefix TEXT,
     query_limit INTEGER,
@@ -59,7 +60,13 @@ WITH
         ORDER BY COALESCE(item_notes.note, item.effective_shelving_order) COLLATE ucs_basic DESC
         LIMIT 1
     ),
-    -- 2. Identify just the items and instances in the range (NARROW)
+    -- 2. Resolve the location code to an ID
+    ref_location AS (
+        SELECT id
+        FROM folio_inventory.location__t
+        WHERE code = location_code
+    ),
+    -- 3. Identify just the items and instances in the range (NARROW)
     filtered_range AS (
         SELECT 
             item.id AS item_id,
@@ -75,10 +82,9 @@ WITH
         LEFT JOIN folio_inventory.holdings_record__t holdings ON item.holdings_record_id = holdings.id
         LEFT JOIN folio_derived.item_notes item_notes ON item_notes.item_id = item.id 
             AND item_notes.note_type_name = 'Shelving order'
-        WHERE 
-            item.effective_location_id IN (SELECT effective_location_id FROM start_boundary)
-            AND item.effective_location_id IN (SELECT effective_location_id FROM end_boundary)
-            AND COALESCE(item_notes.note, item.effective_shelving_order) >= 
+        WHERE
+            item.effective_location_id = (SELECT id FROM ref_location)
+            AND COALESCE(item_notes.note, item.effective_shelving_order) >=
                 (SELECT shelving_order FROM start_boundary) COLLATE ucs_basic
             AND COALESCE(item_notes.note, item.effective_shelving_order) <= 
                 (SELECT shelving_order FROM end_boundary) COLLATE ucs_basic
@@ -87,7 +93,7 @@ WITH
         ORDER BY COALESCE(item_notes.note, item.effective_shelving_order) COLLATE ucs_basic
         LIMIT query_limit OFFSET query_offset
     ),
-    -- 3. The "Many-to-One" data (Summaries and Counts)
+    -- 4. The "Many-to-One" data (Summaries and Counts)
     summarized_contributors AS (
         SELECT instance_id, STRING_AGG(contributor_name, '; ') as names
         FROM folio_derived.instance_contributors
@@ -116,7 +122,7 @@ WITH
           AND jsonb->'loan'->>'action' = 'checkedout'
         GROUP BY (jsonb->'loan'->>'itemId')::UUID
     ),
-    -- 4. The "One-to-One" data (Lookups/References)
+    -- 5. The "One-to-One" data (Lookups/References)
     ref_faculty_status AS (
         SELECT DISTINCT instance_id, TRUE as is_faculty
         FROM folio_derived.instance_notes
@@ -140,7 +146,7 @@ WITH
         FROM folio_inventory.material_type__t
         WHERE id IN (SELECT material_type_id FROM filtered_range)
     )
--- 5. Final Select
+-- 6. Final Select
 SELECT 
     filtered_range.barcode, 
     filtered_range.item_id as id,
