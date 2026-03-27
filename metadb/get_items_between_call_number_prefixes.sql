@@ -4,7 +4,9 @@ DROP FUNCTION IF EXISTS get_items_between_call_number_prefixes;
 
 CREATE FUNCTION get_items_between_call_number_prefixes(
     start_call_number_prefix TEXT,
-    end_call_number_prefix TEXT
+    end_call_number_prefix TEXT,
+    query_limit INTEGER,
+    query_offset INTEGER
 )
 RETURNS TABLE (
     barcode TEXT,
@@ -82,6 +84,8 @@ WITH
                 (SELECT shelving_order FROM end_boundary) COLLATE ucs_basic
             AND (item.discovery_suppress IS NULL OR NOT item.discovery_suppress)
             AND item.barcode IS NOT NULL
+        ORDER BY COALESCE(item_notes.note, item.effective_shelving_order) COLLATE ucs_basic
+        LIMIT query_limit OFFSET query_offset
     ),
     -- 3. The "Many-to-One" data (Summaries and Counts)
     summarized_contributors AS (
