@@ -32,39 +32,41 @@ RETURNS TABLE (
 )
 AS
 $$
-WITH 
-    -- 1. Find the boundaries
+WITH
+    -- 1. Resolve the location code to an ID
+    ref_location AS (
+        SELECT id
+        FROM folio_inventory.location__t
+        WHERE code = location_code
+    ),
+    -- 2. Find the boundaries within the location
     start_boundary AS (
-        SELECT 
+        SELECT
             COALESCE(item_notes.note, item.effective_shelving_order) AS shelving_order,
             item.effective_location_id
         FROM folio_inventory.item__t item
         LEFT JOIN folio_inventory.holdings_record__t holdings ON item.holdings_record_id = holdings.id
-        LEFT JOIN folio_derived.item_notes item_notes ON item_notes.item_id = item.id 
+        LEFT JOIN folio_derived.item_notes item_notes ON item_notes.item_id = item.id
             AND item_notes.note_type_name = 'Shelving order'
-        WHERE (item.item_level_call_number LIKE start_call_number_prefix || '%' 
+        WHERE item.effective_location_id = (SELECT id FROM ref_location)
+          AND (item.item_level_call_number LIKE start_call_number_prefix || '%'
            OR holdings.call_number LIKE start_call_number_prefix || '%')
         ORDER BY COALESCE(item_notes.note, item.effective_shelving_order) COLLATE ucs_basic ASC
         LIMIT 1
     ),
     end_boundary AS (
-        SELECT 
+        SELECT
             COALESCE(item_notes.note, item.effective_shelving_order) AS shelving_order,
             item.effective_location_id
         FROM folio_inventory.item__t item
         LEFT JOIN folio_inventory.holdings_record__t holdings ON item.holdings_record_id = holdings.id
-        LEFT JOIN folio_derived.item_notes item_notes ON item_notes.item_id = item.id 
+        LEFT JOIN folio_derived.item_notes item_notes ON item_notes.item_id = item.id
             AND item_notes.note_type_name = 'Shelving order'
-        WHERE (item.item_level_call_number LIKE end_call_number_prefix || '%' 
+        WHERE item.effective_location_id = (SELECT id FROM ref_location)
+          AND (item.item_level_call_number LIKE end_call_number_prefix || '%'
            OR holdings.call_number LIKE end_call_number_prefix || '%')
         ORDER BY COALESCE(item_notes.note, item.effective_shelving_order) COLLATE ucs_basic DESC
         LIMIT 1
-    ),
-    -- 2. Resolve the location code to an ID
-    ref_location AS (
-        SELECT id
-        FROM folio_inventory.location__t
-        WHERE code = location_code
     ),
     -- 3. Identify just the items and instances in the range (NARROW)
     filtered_range AS (
