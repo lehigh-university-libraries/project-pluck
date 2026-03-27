@@ -185,27 +185,41 @@
       }
 
       function initSheetForLocation() {
-        function onSuccess() {
-          console.info("init sheet succeeded.");
-          $("#init_sheet").removeAttr("disabled");
-        }
-
-        function onFailure(error) {
-          console.info("init sheet failed.");
-          alert("Failed with error: " + error);
-          $("#init_sheet").removeAttr("disabled");
-        }
-
         $("#init_sheet").attr("disabled", "disabled");
         let environment = $("#environment input[type=radio]:checked").val();
         let location_id = $("#location option:checked").val();
+        let location_code = $("#location option:checked").text().trim();
         let start_call_number_prefix = $("#start_call_number_prefix").val();
         let end_call_number_prefix = $("#end_call_number_prefix").val();
         console.log("location_id: " + location_id);
+
         google.script.run
-          .withSuccessHandler(onSuccess)
-          .withFailureHandler(onFailure)
-          .initSheetForLocation(environment, location_id, start_call_number_prefix, end_call_number_prefix);
+          .withSuccessHandler(function(validation) {
+            const missing = [];
+            if (!validation.start_found) missing.push(`start prefix "${start_call_number_prefix}"`);
+            if (!validation.end_found) missing.push(`end prefix "${end_call_number_prefix}"`);
+            if (missing.length > 0) {
+              alert(`No items found in location "${location_code}" matching ${missing.join(' or ')}. Adjust the call number prefix and try again.`);
+              $("#init_sheet").removeAttr("disabled");
+              return;
+            }
+            google.script.run
+              .withSuccessHandler(function() {
+                console.info("init sheet succeeded.");
+                $("#init_sheet").removeAttr("disabled");
+              })
+              .withFailureHandler(function(error) {
+                console.info("init sheet failed.");
+                alert("Failed with error: " + error);
+                $("#init_sheet").removeAttr("disabled");
+              })
+              .initSheetForLocation(environment, location_id, start_call_number_prefix, end_call_number_prefix);
+          })
+          .withFailureHandler(function(error) {
+            alert("Preflight check failed: " + error);
+            $("#init_sheet").removeAttr("disabled");
+          })
+          .validateCallNumberBoundaries(environment, location_code, start_call_number_prefix, end_call_number_prefix);
       }
 
       function stopLoading() {

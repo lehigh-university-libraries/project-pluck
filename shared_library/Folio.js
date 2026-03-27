@@ -94,6 +94,20 @@ function loadInstanceStatusWithdrawnId() {
   return instanceStatus.id;
 }
 
+function validateCallNumberBoundaries(locationCode, startPrefix, endPrefix) {
+  const payload = {
+    'url': 'https://raw.githubusercontent.com/lehigh-university-libraries/project-pluck/refs/heads/social-sciences/metadb/validate_call_number_boundaries.sql',
+    'params': {
+      'location_code': locationCode,
+      'start_call_number_prefix': startPrefix,
+      'end_call_number_prefix': endPrefix,
+    },
+    'limit': 1,
+  };
+  const result = queryFolioPost('/ldp/db/reports', payload);
+  return result?.['records']?.[0] ?? { start_found: false, end_found: false };
+}
+
 function loadItemsMetadb(locationCode, startCallNumberPrefix, endCallNumberPrefix, offset, count) {
   const payload = {
     'url': 'https://raw.githubusercontent.com/lehigh-university-libraries/project-pluck/refs/heads/social-sciences/metadb/get_items_between_call_number_prefixes.sql',

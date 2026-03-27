@@ -30,6 +30,11 @@ function loadMoreItems() {
   initProperties();
   ProjectPluck.loadMoreItems();
 }
+function validateCallNumberBoundaries(environment, location_code, start_call_number_prefix, end_call_number_prefix) {
+  PropertiesService.getScriptProperties().setProperty("environment", environment);
+  initProperties();
+  return ProjectPluck.validateCallNumberBoundaries(location_code, start_call_number_prefix, end_call_number_prefix);
+}
 function stopLoading() {
   initProperties();
   ProjectPluck.stopLoading();
