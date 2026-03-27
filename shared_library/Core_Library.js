@@ -198,10 +198,20 @@ function tryLoadMoreItems(sheetName) {
   let locationId = properties.getProperty('location_id');
   writeTabName(locationId);
 
+  const loadingMode = getLoadingMode();
   let offset = SpreadsheetApp.getActiveSheet().getLastRow() - 1;
   let count = DEFAULT_COUNT;
+  let items;
+  if (loadingMode === 'folio') {
+    console.log("Loading items in 'folio' mode.");
+    items = loadItemsFolio(locationId, offset, count);
+  } else {
+    console.log("Loading items in 'metadb' mode.");
+    let startCallNumberPrefix = properties.getProperty('start_call_number_prefix');
+    let endCallNumberPrefix = properties.getProperty('end_call_number_prefix');
+    items = loadItemsMetadb(startCallNumberPrefix, endCallNumberPrefix, offset, count);
+  }
   console.log(`writing items to sheet with offset ${offset} and count ${count}`);
-  const items = loadItems(locationId, offset, count);
   if (items.length == 0) {
     console.log("Loaded all items for this sheet");
     SpreadsheetApp.getActiveSheet().setTabColor(TAB_COMPLETE_COLOR);
@@ -213,8 +223,10 @@ function tryLoadMoreItems(sheetName) {
   let row = SpreadsheetApp.getActiveSheet().getLastRow();
   for (const item of items) {
     row++;
-    // logTime('before enrichment');
-    enrichItem(item, true, true, true);
+    if (loadingMode === 'folio') {
+      enrichItem(item, true, true, true);
+      normalizeFolioItem(item);
+    }
     enrichFromOclc(item);
     enrichFromHathi(item);
     writeItemToSheet(row, item);
@@ -279,25 +291,25 @@ function getColumnLetter(text) {
 
 function writeItemToSheet(row, item) {
   initWriteToRow();
-  writeToRow(getColumn(BARCODE), item['barcode']);
-  writeToRow(getColumn(EFFECTIVE_CALL_NUMBER), item['effectiveCallNumberComponents']?.['callNumber']);
-  writeToRow(getColumn(TITLE), item['title']);
-  writeToRow(getColumn(CONTRIBUTOR), item['contributorNames']?.[0]?.['name']);
-  writeToRow(getColumn(PUBLICATION_DATE), item.instance['publication']?.[0]?.['dateOfPublication']);
-  writeToRow(getColumn(ITEM_STATUS), item['status']['name']);
+  writeToRow(getColumn(BARCODE), item.barcode);
+  writeToRow(getColumn(EFFECTIVE_CALL_NUMBER), item['effective_call_number']);
+  writeToRow(getColumn(TITLE), item.title);
+  writeToRow(getColumn(CONTRIBUTOR), item.contributor);
+  writeToRow(getColumn(PUBLICATION_DATE), item.publication_date);
+  writeToRow(getColumn(ITEM_STATUS), item['item_status']);
   writeToRow(getColumn(RETENTION), hasRetentionAgreement(item));
   writeToRow(getColumn(FACULTY_AUTHOR), isFacultyAuthor(item));
   writeToRow(getColumn(LEGACY_CIRC_COUNT), parseLegacyCircCount(item));
   writeToRow(getColumn(FOLIO_CIRC_COUNT), parseFolioCircCount(item));
-  writeToRow(getColumn(OCLC_NUMBER), parseOclcNumber(item));
+  writeToRow(getColumn(OCLC_NUMBER), item.oclc_number);  // parseOclcNumber(item));
   writeToRow(getColumn(OCLC_HOLDINGS), parseOclcHoldings(item));
   writeToRow(getColumn(PALCI_HOLDINGS), parsePalciHoldings(item));
   writeToRow(getColumn(HATHI_EBOOK), parseHathiEbook(item));
-  writeToRow(getColumn(INSTANCE_UUID), item.instance.id);
-  writeToRow(getColumn(INSTANCE_HRID), item.instance.hrid);
-  writeToRow(getColumn(ITEM_EFFECTIVE_LOCATION_NAME), item['effectiveLocation']?.['name']);
-  writeToRow(getColumn(HOLDINGS_PERMANENT_LOCATION_NAME), parseLocation(item.holdingsRecord['permanentLocationId']));
-  writeToRow(getColumn(MATERIAL_TYPE), item['materialType']?.['name']);
+  writeToRow(getColumn(INSTANCE_UUID), item.instance_uuid);
+  writeToRow(getColumn(INSTANCE_HRID), item.instance_hrid);
+  writeToRow(getColumn(ITEM_EFFECTIVE_LOCATION_NAME), item['item_effective_location_name']);
+  writeToRow(getColumn(HOLDINGS_PERMANENT_LOCATION_NAME), item['holdings_permanent_location_name']);
+  writeToRow(getColumn(MATERIAL_TYPE), item['material_type']);
   commitWriteToRow(row);
 }
 

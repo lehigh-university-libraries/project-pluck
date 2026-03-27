@@ -1,7 +1,12 @@
 // Wrap library functions, pass in properties as needed
 function onOpen() {
   initProperties();
+  checkProperties();
   ProjectPluck.onOpen();
+}
+function getLoadingMode() {
+  initProperties();
+  return ProjectPluck.getLoadingMode();
 }
 function showSidebar() {
   initProperties();
@@ -12,12 +17,18 @@ function getLocations(environment) {
   initProperties();
   return ProjectPluck.getLocations();
 }
-function initSheetForLocation(environment, location_id) {
+function initSheetForLocation(environment, location_id, start_call_number_prefix, end_call_number_prefix) {
   PropertiesService.getScriptProperties().setProperty("environment", environment);
   PropertiesService.getScriptProperties().setProperty("location_id", location_id);
+  PropertiesService.getScriptProperties().setProperty("start_call_number_prefix", start_call_number_prefix);
+  PropertiesService.getScriptProperties().setProperty("end_call_number_prefix", end_call_number_prefix);
   PropertiesService.getScriptProperties().setProperty('lastSheetName', SpreadsheetApp.getActiveSheet().getSheetName());
   initProperties();
   ProjectPluck.initSheetForLocation();
+}
+function loadMoreItems() {
+  initProperties();
+  ProjectPluck.loadMoreItems();
 }
 function stopLoading() {
   initProperties();
@@ -39,4 +50,20 @@ function initProperties() {
 
 function getEnvironment() {
   return PropertiesService.getScriptProperties().getProperty("environment");
+}
+
+function hasItems() {
+  return SpreadsheetApp.getActiveSheet().getLastRow() > 1;
+}
+
+function getCallNumberPrefixes() {
+  const props = PropertiesService.getScriptProperties();
+  return {
+    start: props.getProperty('start_call_number_prefix'),
+    end: props.getProperty('end_call_number_prefix'),
+  };
+}
+
+function checkProperties() {
+  getLoadingMode();
 }

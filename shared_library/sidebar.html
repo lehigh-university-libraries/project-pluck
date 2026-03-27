@@ -65,6 +65,16 @@
         </div>
 
         <div class="block form-group">
+          <label for="start_call_number_prefix">Start Call Number Prefix</label>
+          <input type="text" id="start_call_number_prefix">
+        </div>
+
+        <div class="block form-group">
+          <label for="end_call_number_prefix">End Call Number Prefix</label>
+          <input type="text" id="end_call_number_prefix">
+        </div>
+
+        <div class="block form-group">
           <input type="button" class="action" id="init_sheet" value="Load Items" onclick="initSheetForLocation()" />
         </div>
 
@@ -99,6 +109,15 @@
 
     <script>
       $(function() {
+        google.script.run
+          .withSuccessHandler(function(mode) {
+            if (mode === 'folio') {
+              $('#start_call_number_prefix').closest('.form-group').hide();
+              $('#end_call_number_prefix').closest('.form-group').hide();
+            }
+          })
+          .getLoadingMode();
+
         function onGetEnvironmentSuccess(environment) {
           if (environment) {
             $(`#environment input[value="${environment}"]`).prop('checked', true);
@@ -122,6 +141,12 @@
         $('#init_environment').prop('disabled', true);
       }
 
+      function lockLoadItems() {
+        $('#location').prop('disabled', true);
+        $('#start_call_number_prefix').prop('disabled', true);
+        $('#end_call_number_prefix').prop('disabled', true);
+      }
+
       function initEnvironment() {
         function onSuccess(locations) {
           console.info("locations: " + locations);
@@ -132,6 +157,18 @@
             }
             $('#location').append(option);
           }
+          google.script.run
+            .withSuccessHandler(function(hasItems) {
+              if (!hasItems) return;
+              google.script.run
+                .withSuccessHandler(function(prefixes) {
+                  $('#start_call_number_prefix').val(prefixes.start);
+                  $('#end_call_number_prefix').val(prefixes.end);
+                  lockLoadItems();
+                })
+                .getCallNumberPrefixes();
+            })
+            .hasItems();
         }
 
         function onFailure(error) {
@@ -162,11 +199,13 @@
         $("#init_sheet").attr("disabled", "disabled");
         let environment = $("#environment input[type=radio]:checked").val();
         let location_id = $("#location option:checked").val();
+        let start_call_number_prefix = $("#start_call_number_prefix").val();
+        let end_call_number_prefix = $("#end_call_number_prefix").val();
         console.log("location_id: " + location_id);
         google.script.run
           .withSuccessHandler(onSuccess)
           .withFailureHandler(onFailure)
-          .initSheetForLocation(environment, location_id);
+          .initSheetForLocation(environment, location_id, start_call_number_prefix, end_call_number_prefix);
       }
 
       function stopLoading() {

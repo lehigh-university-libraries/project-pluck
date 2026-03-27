@@ -19,27 +19,24 @@ if (typeof FOLIOAUTHLIBRARY === 'undefined') {
   }
 }
 
+function getLoadingMode() {
+  const mode = properties.getProperty('loadingMode');
+  if (mode !== 'folio' && mode !== 'metadb') {
+    throw new Error(`loadingMode must be 'folio' or 'metadb', got: ${mode}`);
+  }
+  return mode;
+}
+
 function loadItemForBarcode(barcode, holdingsRecord, instance, circulations) {
   const item = loadItem(barcode);
   if (!item) {
     console.error("No item matching barcode: " + barcode);
     return null;
   }
-  enrichItem(item, holdingsRecord, instance, circulations);
+  if (getLoadingMode() === 'folio') {
+    enrichItem(item, holdingsRecord, instance, circulations);
+  }
   return item;
-}
-
-function enrichItem(item, holdingsRecord, instance, circulations) {
-  if (holdingsRecord) {
-    item.holdingsRecord = loadHoldingsRecord(item);
-  }
-  if (instance) {
-    item.instance = loadInstance(item);
-  }
-  if (circulations) {
-    item.circulations = loadCirculationLogs(item, 'Checked out');
-  }
-  // logTime('after FOLIO enrichment');
 }
 
 function initFolio() {
@@ -97,11 +94,18 @@ function loadInstanceStatusWithdrawnId() {
   return instanceStatus.id;
 }
 
-function loadItems(locationId, offset, count) {
-  const statusNamesString = ITEM_STATUSES.map((status) => `"${status}"`).join(' OR ')
-  const url = `/inventory/items?query=${encodeURIComponent(`effectiveLocationId=="${locationId}" AND (instance.discoverySuppress=="false") AND (status.name = (${statusNamesString})) sortby effectiveCallNumberComponents.callNumber`)}&limit=${count}&offset=${offset}`;
-  const items = queryFolioGet(url)['items'];
-  return items;
+function loadItemsMetadb(startCallNumberPrefix, endCallNumberPrefix, offset, count) {
+  const payload = {
+    'url': 'https://raw.githubusercontent.com/lehigh-university-libraries/project-pluck/refs/heads/social-sciences/metadb/get_items_between_call_number_prefixes.sql',
+    'params': {
+      'start_call_number_prefix': startCallNumberPrefix,
+      'end_call_number_prefix': endCallNumberPrefix,
+      'query_limit': String(count),
+      'query_offset': String(offset),
+    },
+    'limit': count,
+  };
+  return queryFolioPost('/ldp/db/reports', payload)['records'];
 }
 
 
@@ -110,24 +114,6 @@ function loadItem(barcode) {
   const items = queryFolioGet(url)['items'];
   const item = items[0] ?? null;
   return item;
-}
-
-function loadHoldingsRecord(item) {
-  const url = `/holdings-storage/holdings/${item.holdingsRecordId}`;
-  const holdingsRecord = queryFolioGet(url);
-  return holdingsRecord;
-}
-
-function loadInstance(item) {
-  const url = `/inventory/instances/${item.holdingsRecord.instanceId}`;
-  const instance = queryFolioGet(url);
-  return instance;
-}
-
-function loadCirculationLogs(item, action) {
-  const url = `/audit-data/circulation/logs?query=${encodeURIComponent(`(items=="*${item.id}*" and action=="${action}")`)}`;
-  const logs = queryFolioGet(url);
-  return logs;
 }
 
 function putItem(item) {
@@ -148,7 +134,7 @@ function putHoldingsRecord(holdingsRecord) {
 
 function hasUnsuppressedHoldingsRecords(instance, ignoreHoldingsRecord) {
   const url = `/holdings-storage/holdings?query=${encodeURIComponent(`instanceId==${instance.id}`)}`;
-  holdingsRecords = queryFolioGet(url)['holdingsRecords'];
+  const holdingsRecords = queryFolioGet(url)['holdingsRecords'];
   return hasUnsuppressedRecord(holdingsRecords, ignoreHoldingsRecord);
 }
 
@@ -170,50 +156,24 @@ function hasUnsuppressedRecord(recordList, ignoreRecord) {
 }
 
 function hasRetentionAgreement(item) {
-  const statisticalCodeIds = item['statisticalCodeIds'];
-  const retentionIds = statisticalCodeIds.filter(element => RETENTION_IDS.includes(element));
-  return retentionIds.length > 0;
+  const codes = JSON.parse(item.statistical_codes || "[]");
+  return codes.some(code => RETENTION_IDS.includes(code));
 }
 
 function isFacultyAuthor(item) {
-  const notes = item.instance['notes'];
-  for (let note of notes) {
-    if (FACULTY_AUTHOR_NOTE_TEXT == note['note']) {
-      return true;
-    }
-  }
-  return false;
+  return item.faculty_author;
 }
 
 function parseLegacyCircCount(item) {
-  const notes = item['notes'];
-  for (let note of notes) {
-    if (note.itemNoteTypeId == LEGACY_CIRC_COUNT_NOTE_TYPE_ID) {
-      return note.note;
-    }
-  }
-  return null;
+  return item.legacy_circ_count;
 }
 
 function parseFolioCircCount(item) {
-  const circ_count = item.circulations['totalRecords'];
-  return circ_count;
+  return item.folio_circ_count;
 }
 
-function parseOclcNumber(item, stripPrefix = false) {
-  const identifiers = item.instance['identifiers'];
-  for (let identifier of identifiers) {
-    if (OCLC_NUMBER_IDENTIFIER_TYPE_ID == identifier['identifierTypeId']) {
-      let oclcNumber = identifier['value'].trim();
-      if (stripPrefix) {
-        oclcNumber = oclcNumber.replace("(OCoLC)", "");
-        oclcNumber = oclcNumber.replace("ocn", "");
-        oclcNumber = oclcNumber.trim();
-      }
-      return oclcNumber;
-    }
-  }
-  return null;
+function parseOclcNumber(item) {
+  return item['oclc_number'];
 }
 
 function parseLocation(locationId) {
@@ -239,6 +199,28 @@ function queryFolioGet(url) {
     // console.log("response data: ", responseData);
     return responseData;
   }
+}
+
+function queryFolioPost(url, payload) {
+  const environment = properties.getProperty("environment");
+  const query = FOLIOAUTHLIBRARY.getBaseOkapi(environment) + url;
+  const payloadString = JSON.stringify(payload);
+  console.log(`Executing POST query with url ${url} and payload ${payloadString}`);
+  const headers = FOLIOAUTHLIBRARY.getHttpPostHeaders();
+  const options = {
+    'method': 'post',
+    'contentType': 'application/json',
+    'headers': headers,
+    'payload': payloadString,
+    'muteHttpExceptions': true,
+  };
+  const response = UrlFetchApp.fetch(query, options);
+  const responseText = response.getContentText();
+  if (response.getResponseCode() < 200 || response.getResponseCode() >= 400) {
+    console.error(`Error response: ${response.getResponseCode()}, ${responseText}`);
+    return null;
+  }
+  return JSON.parse(responseText);
 }
 
 function queryFolioPut(url, payload) {
