@@ -19,12 +19,22 @@ function getLocations(environment) {
 }
 function initSheetForLocation(environment, location_id, start_call_number_prefix, end_call_number_prefix) {
   PropertiesService.getScriptProperties().setProperty("environment", environment);
-  PropertiesService.getScriptProperties().setProperty("location_id", location_id);
-  PropertiesService.getScriptProperties().setProperty("start_call_number_prefix", start_call_number_prefix);
-  PropertiesService.getScriptProperties().setProperty("end_call_number_prefix", end_call_number_prefix);
   PropertiesService.getScriptProperties().setProperty('lastSheetName', SpreadsheetApp.getActiveSheet().getSheetName());
+  const sheet = SpreadsheetApp.getActiveSheet();
+  setSheetMetadata(sheet, 'location_id', location_id);
+  setSheetMetadata(sheet, 'start_call_number_prefix', start_call_number_prefix);
+  setSheetMetadata(sheet, 'end_call_number_prefix', end_call_number_prefix);
   initProperties();
   ProjectPluck.initSheetForLocation();
+}
+
+function setSheetMetadata(sheet, key, value) {
+  const found = sheet.createDeveloperMetadataFinder().withKey(key).find();
+  if (found.length > 0) {
+    found[0].setValue(value);
+  } else {
+    sheet.addDeveloperMetadata(key, value);
+  }
 }
 function loadMoreItems() {
   initProperties();
@@ -57,15 +67,18 @@ function getEnvironment() {
   return PropertiesService.getScriptProperties().getProperty("environment");
 }
 
-function hasItems() {
-  return SpreadsheetApp.getActiveSheet().getLastRow() > 1;
-}
-
-function getCallNumberPrefixes() {
-  const props = PropertiesService.getScriptProperties();
+function getActiveSheetState() {
+  initProperties();
+  const sheet = SpreadsheetApp.getActiveSheet();
+  const metadata = Object.fromEntries(
+    sheet.getDeveloperMetadata().map(m => [m.getKey(), m.getValue()])
+  );
   return {
-    start: props.getProperty('start_call_number_prefix'),
-    end: props.getProperty('end_call_number_prefix'),
+    sheetName: sheet.getName(),
+    hasItems: sheet.getLastRow() > 1,
+    locationId: metadata['location_id'] ?? null,
+    startCallNumberPrefix: metadata['start_call_number_prefix'] ?? null,
+    endCallNumberPrefix: metadata['end_call_number_prefix'] ?? null,
   };
 }
 

@@ -19,6 +19,17 @@
 
     select {
       text-align: left;
+
+      &:disabled {
+        color: white;
+      }
+    }
+
+    input[type=text]:disabled {
+      background-color: #d0d0d0;
+      color: #666;
+      border-color: #aaa;
+      cursor: not-allowed;
     }
 
     #environment div {
@@ -51,6 +62,7 @@
 
         <div class="block form-group">
           <input type="button" class="action" id="init_environment" value="Load Locations" onclick="initEnvironment()" />
+          <input type="button" class="action" value="Developer Info" onclick="showSheetMetadata()" />
         </div>
       </fieldset>
       <br />
@@ -60,18 +72,18 @@
 
         <div class="block form-group">
           <label for="location">Location</label>
-          <select id="location">
+          <select id="location" disabled>
           </select>
         </div>
 
         <div class="block form-group">
           <label for="start_call_number_prefix">Start Call Number Prefix</label>
-          <input type="text" id="start_call_number_prefix">
+          <input type="text" id="start_call_number_prefix" disabled>
         </div>
 
         <div class="block form-group">
           <label for="end_call_number_prefix">End Call Number Prefix</label>
-          <input type="text" id="end_call_number_prefix">
+          <input type="text" id="end_call_number_prefix" disabled>
         </div>
 
         <div class="block form-group">
@@ -136,6 +148,20 @@
           .getEnvironment();
       });
 
+      function showSheetMetadata() {
+        google.script.run
+          .withSuccessHandler(function(state) {
+            alert(
+              `Sheet: ${state.sheetName}\n` +
+              `Has items: ${state.hasItems}\n` +
+              `Location ID: ${state.locationId}\n` +
+              `Start call number prefix: ${state.startCallNumberPrefix}\n` +
+              `End call number prefix: ${state.endCallNumberPrefix}`
+            );
+          })
+          .getActiveSheetState();
+      }
+
       function lockEnvironment() {
         $('#environment input[type=radio]').prop('disabled', true);
         $('#init_environment').prop('disabled', true);
@@ -147,6 +173,47 @@
         $('#end_call_number_prefix').prop('disabled', true);
       }
 
+      function unlockLoadItems() {
+        $('#location').prop('disabled', false);
+        $('#start_call_number_prefix').prop('disabled', false);
+        $('#end_call_number_prefix').prop('disabled', false);
+      }
+
+      function applySheetState(state) {
+        if (!state.hasItems) {
+          const hasValues = $('#location').prop('selectedIndex') !== 0 ||
+                            $('#start_call_number_prefix').val() !== '' ||
+                            $('#end_call_number_prefix').val() !== '';
+          if (!hasValues) {
+            $('#location').prop('selectedIndex', 0);
+            $('#start_call_number_prefix').val('');
+            $('#end_call_number_prefix').val('');
+          }
+          return;
+        }
+        $('#location').val(state.locationId);
+        $('#start_call_number_prefix').val(state.startCallNumberPrefix);
+        $('#end_call_number_prefix').val(state.endCallNumberPrefix);
+        lockLoadItems();
+      }
+
+      let currentSheetName = null;
+
+      function checkActiveSheet() {
+        google.script.run
+          .withSuccessHandler(function(state) {
+            if (state.sheetName === currentSheetName) return;
+            currentSheetName = state.sheetName;
+            $('#location').prop('disabled', false);
+            $('#start_call_number_prefix').prop('disabled', false);
+            $('#end_call_number_prefix').prop('disabled', false);
+            applySheetState(state);
+          })
+          .getActiveSheetState();
+      }
+
+      setInterval(checkActiveSheet, 10000);
+
       function initEnvironment() {
         function onSuccess(locations) {
           console.info("locations: " + locations);
@@ -157,18 +224,10 @@
             }
             $('#location').append(option);
           }
+          unlockLoadItems();
           google.script.run
-            .withSuccessHandler(function(hasItems) {
-              if (!hasItems) return;
-              google.script.run
-                .withSuccessHandler(function(prefixes) {
-                  $('#start_call_number_prefix').val(prefixes.start);
-                  $('#end_call_number_prefix').val(prefixes.end);
-                  lockLoadItems();
-                })
-                .getCallNumberPrefixes();
-            })
-            .hasItems();
+            .withSuccessHandler(applySheetState)
+            .getActiveSheetState();
         }
 
         function onFailure(error) {
@@ -186,6 +245,7 @@
 
       function initSheetForLocation() {
         $("#init_sheet").attr("disabled", "disabled");
+        lockLoadItems();
         let environment = $("#environment input[type=radio]:checked").val();
         let location_id = $("#location option:checked").val();
         let location_code = $("#location option:checked").text().trim();
@@ -200,6 +260,7 @@
             if (!validation.end_found) missing.push(`end prefix "${end_call_number_prefix}"`);
             if (missing.length > 0) {
               alert(`No items found in location "${location_code}" matching ${missing.join(' or ')}. Adjust the call number prefix and try again.`);
+              unlockLoadItems();
               $("#init_sheet").removeAttr("disabled");
               return;
             }

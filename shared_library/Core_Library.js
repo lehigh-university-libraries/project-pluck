@@ -195,8 +195,11 @@ function tryLoadMoreItems(sheetName) {
   initHathi();
   writeHeaders();
 
-  let locationId = properties.getProperty('location_id');
-  writeTabName(locationId);
+  const sheet = SpreadsheetApp.getActive().getSheetByName(sheetName);
+  const locationId            = getSheetMetadata(sheet, 'location_id');
+  const startCallNumberPrefix = getSheetMetadata(sheet, 'start_call_number_prefix');
+  const endCallNumberPrefix   = getSheetMetadata(sheet, 'end_call_number_prefix');
+  writeTabName(locationId, startCallNumberPrefix, endCallNumberPrefix);
 
   const loadingMode = getLoadingMode();
   let offset = SpreadsheetApp.getActiveSheet().getLastRow() - 1;
@@ -208,8 +211,6 @@ function tryLoadMoreItems(sheetName) {
   } else {
     console.log("Loading items in 'metadb' mode.");
     let locationCode = LOCATIONS[locationId]?.['code'];
-    let startCallNumberPrefix = properties.getProperty('start_call_number_prefix');
-    let endCallNumberPrefix = properties.getProperty('end_call_number_prefix');
     items = loadItemsMetadb(locationCode, startCallNumberPrefix, endCallNumberPrefix, offset, count);
   }
   console.log(`writing items to sheet with offset ${offset} and count ${count}`);
@@ -271,11 +272,31 @@ function writeHeaders() {
   SpreadsheetApp.getActiveSheet().getRange(`${column}1:${column}`).setHorizontalAlignment("right");
 }
 
-function writeTabName(locationId) {
-  let code = LOCATIONS[locationId]?.['code'];
-  SpreadsheetApp.getActiveSheet().setName(code);
+function getSheetMetadata(sheet, key) {
+  const found = sheet.createDeveloperMetadataFinder().withKey(key).find();
+  return found.length > 0 ? found[0].getValue() : null;
+}
 
-  properties.setProperty('lastSheetName', SpreadsheetApp.getActiveSheet().getSheetName());
+function setSheetMetadata(sheet, key, value) {
+  const found = sheet.createDeveloperMetadataFinder().withKey(key).find();
+  if (found.length > 0) {
+    found[0].setValue(value);
+  } else {
+    sheet.addDeveloperMetadata(key, value);
+  }
+}
+
+function writeTabName(locationId, startCallNumberPrefix, endCallNumberPrefix) {
+  const code = LOCATIONS[locationId]?.['code'];
+  const name = (getLoadingMode() === 'metadb')
+    ? `${startCallNumberPrefix} - ${endCallNumberPrefix} | ${code}`
+    : code;
+  const sheet = SpreadsheetApp.getActiveSheet();
+  sheet.setName(name);
+  setSheetMetadata(sheet, 'location_id', locationId);
+  setSheetMetadata(sheet, 'start_call_number_prefix', startCallNumberPrefix ?? '');
+  setSheetMetadata(sheet, 'end_call_number_prefix', endCallNumberPrefix ?? '');
+  properties.setProperty('lastSheetName', sheet.getName());
 }
 
 function getColumn(text) {
