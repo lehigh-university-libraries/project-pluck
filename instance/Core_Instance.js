@@ -19,10 +19,12 @@ function reloadFolioMetadata() {
 function showDeveloperInfo() {
   ProjectPluck.showDeveloperInfo();
 }
-function getLocations(environment) {
+function getLocationsAndSheetState(environment) {
   PropertiesService.getScriptProperties().setProperty("environment", environment);
   initProperties();
-  return ProjectPluck.getLocations();
+  const locations = ProjectPluck.getLocations();
+  const sheetState = getActiveSheetState();
+  return { locations, sheetState };
 }
 function initSheetForLocation(environment, location_id, start_call_number_prefix, end_call_number_prefix) {
   PropertiesService.getScriptProperties().setProperty("environment", environment);
@@ -72,6 +74,18 @@ function initProperties() {
 
 function getEnvironment() {
   return PropertiesService.getScriptProperties().getProperty("environment");
+}
+
+function getSidebarInitData() {
+  initProperties();
+  const loadingMode = ProjectPluck.getLoadingMode();
+  const environment = PropertiesService.getScriptProperties().getProperty('environment');
+  if (!environment) {
+    return { loadingMode, environment: null, locations: null, sheetState: null };
+  }
+  const locations = ProjectPluck.getLocations();
+  const sheetState = getActiveSheetState();
+  return { loadingMode, environment, locations, sheetState };
 }
 
 function getActiveSheetState() {

@@ -120,34 +120,31 @@
 
     <script>
       $(function() {
-        google.script.run
-          .withSuccessHandler(function(mode) {
-            if (mode === 'folio') {
-              $('#start_call_number_prefix').closest('.form-group').hide();
-              $('#end_call_number_prefix').closest('.form-group').hide();
-            }
-          })
-          .getLoadingMode();
-
-        function onGetEnvironmentSuccess(environment) {
-          if (environment) {
-            $(`#environment input[value="${environment}"]`).prop('checked', true);
+        function onSuccess(data) {
+          if (data.loadingMode === 'folio') {
+            $('#start_call_number_prefix').closest('.form-group').hide();
+            $('#end_call_number_prefix').closest('.form-group').hide();
+          }
+          if (data.environment) {
+            $(`#environment input[value="${data.environment}"]`).prop('checked', true);
             lockEnvironment();
-            initEnvironment();
+            populateLocations(data.locations);
+            currentSheetName = data.sheetState.sheetName;
+            applySheetState(data.sheetState);
           }
         }
 
-        function onGetEnvironmentFailure(error) {
-          console.log("Failed to get environment: ", error);
+        function onFailure(error) {
+          console.log("Failed to get sidebar init data: ", error);
         }
 
         google.script.run
-          .withSuccessHandler(onGetEnvironmentSuccess)
-          .withFailureHandler(onGetEnvironmentFailure)
-          .getEnvironment();
+          .withSuccessHandler(onSuccess)
+          .withFailureHandler(onFailure)
+          .getSidebarInitData();
       });
 
-function lockEnvironment() {
+      function lockEnvironment() {
         $('#environment input[type=radio]').prop('disabled', true);
         $('#init_environment').prop('disabled', true);
       }
@@ -199,20 +196,23 @@ function lockEnvironment() {
 
       setInterval(checkActiveSheet, 10000);
 
-      function initEnvironment() {
-        function onSuccess(locations) {
-          console.info("locations: " + locations);
-          for (const [locationId, location] of locations) {
-            let option = $(`<option value="${locationId}">${location['code']}</option>`);
-            if (location['activeSheet'] ?? false) {
-              $(option).attr('selected', true);
-            }
-            $('#location').append(option);
+      function populateLocations(locations) {
+        for (const [locationId, location] of locations) {
+          let option = $(`<option value="${locationId}">${location['code']}</option>`);
+          if (location['activeSheet'] ?? false) {
+            $(option).attr('selected', true);
           }
-          unlockLoadItems();
-          google.script.run
-            .withSuccessHandler(applySheetState)
-            .getActiveSheetState();
+          $('#location').append(option);
+        }
+        unlockLoadItems();
+      }
+
+      function initEnvironment() {
+        function onSuccess(data) {
+          console.info("locations: " + data.locations);
+          populateLocations(data.locations);
+          currentSheetName = data.sheetState.sheetName;
+          applySheetState(data.sheetState);
         }
 
         function onFailure(error) {
@@ -222,10 +222,10 @@ function lockEnvironment() {
 
         let environment = $("#environment input[type=radio]:checked").val();
         console.log("initEnvironment: environment is " + environment);
-        let locations = google.script.run
+        google.script.run
           .withSuccessHandler(onSuccess)
           .withFailureHandler(onFailure)
-          .getLocations(environment);
+          .getLocationsAndSheetState(environment);
       }
 
       function initSheetForLocation() {
