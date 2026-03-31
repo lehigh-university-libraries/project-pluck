@@ -144,6 +144,7 @@ function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('Project Pluck')
     .addItem('Show Sidebar', 'showSidebar')
+    .addItem('Show developer info', 'showDeveloperInfo')
     .addToUi();
 }
 
@@ -154,6 +155,20 @@ function showSidebar() {
     .setWidth(500);
   SpreadsheetApp.getUi()
     .showSidebar(html);
+}
+function showDeveloperInfo() {
+  const sheet = SpreadsheetApp.getActiveSheet();
+  const metadata = Object.fromEntries(
+    sheet.getDeveloperMetadata().map(m => [m.getKey(), m.getValue()])
+  );
+  const hasItems = sheet.getLastRow() > 1;
+  SpreadsheetApp.getUi().alert(
+    `Sheet: ${sheet.getName()}\n` +
+    `Has items: ${hasItems}\n` +
+    `Location ID: ${metadata['location_id'] ?? null}\n` +
+    `Start call number prefix: ${metadata['start_call_number_prefix'] ?? null}\n` +
+    `End call number prefix: ${metadata['end_call_number_prefix'] ?? null}`
+  );
 }
 
 function getLocations() {

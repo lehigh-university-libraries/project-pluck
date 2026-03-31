@@ -62,7 +62,6 @@
 
         <div class="block form-group">
           <input type="button" class="action" id="init_environment" value="Load Locations" onclick="initEnvironment()" />
-          <input type="button" class="action" value="Developer Info" onclick="showSheetMetadata()" />
         </div>
       </fieldset>
       <br />
@@ -148,21 +147,7 @@
           .getEnvironment();
       });
 
-      function showSheetMetadata() {
-        google.script.run
-          .withSuccessHandler(function(state) {
-            alert(
-              `Sheet: ${state.sheetName}\n` +
-              `Has items: ${state.hasItems}\n` +
-              `Location ID: ${state.locationId}\n` +
-              `Start call number prefix: ${state.startCallNumberPrefix}\n` +
-              `End call number prefix: ${state.endCallNumberPrefix}`
-            );
-          })
-          .getActiveSheetState();
-      }
-
-      function lockEnvironment() {
+function lockEnvironment() {
         $('#environment input[type=radio]').prop('disabled', true);
         $('#init_environment').prop('disabled', true);
       }
