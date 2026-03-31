@@ -144,18 +144,25 @@ function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('Project Pluck')
     .addItem('Show Sidebar', 'showSidebar')
+    .addItem('Reload FOLIO metadata', 'reloadFolioMetadata')
     .addItem('Show developer info', 'showDeveloperInfo')
     .addToUi();
 }
 
 function showSidebar() {
-  clearCache();
   var html = HtmlService.createHtmlOutputFromFile('sidebar')
     .setTitle('Project Pluck')
     .setWidth(500);
   SpreadsheetApp.getUi()
     .showSidebar(html);
 }
+
+function reloadFolioMetadata() {
+  clearCache();
+  initFolio();
+  SpreadsheetApp.getUi().alert('FOLIO metadata reloaded.');
+}
+
 function showDeveloperInfo() {
   const sheet = SpreadsheetApp.getActiveSheet();
   const metadata = Object.fromEntries(

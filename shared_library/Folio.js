@@ -1,4 +1,4 @@
-const FOLIO_CACHE_TIME = 60 * 30; // 30m
+const FOLIO_CACHE_TIME = 60 * 60 * 24 * 7; // 7 days
 
 const ITEM_STATUSES = [
   'Available',

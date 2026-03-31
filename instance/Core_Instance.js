@@ -12,6 +12,13 @@ function showSidebar() {
   initProperties();
   ProjectPluck.showSidebar();
 }
+function reloadFolioMetadata() {
+  initProperties();
+  ProjectPluck.reloadFolioMetadata();
+}
+function showDeveloperInfo() {
+  ProjectPluck.showDeveloperInfo();
+}
 function getLocations(environment) {
   PropertiesService.getScriptProperties().setProperty("environment", environment);
   initProperties();
