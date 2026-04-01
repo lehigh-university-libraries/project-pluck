@@ -51,7 +51,10 @@ const HEADERS = [
 
 const MAX_COLUMNS = HEADERS.length;
 
-const DEFAULT_COUNT = 50;
+const FOLIO_LOAD_COUNT = 50;
+const METADB_LOAD_COUNT = 500;
+const FOLIO_ENRICH_COUNT = 50;
+const METADB_ENRICH_COUNT = 50;
 const FLUSH_RATE = 5;
 const PAUSE_TIME = 5000;
 const TAB_COMPLETE_COLOR = 'green';
@@ -225,17 +228,18 @@ function tryLoadMoreItems(sheetName) {
 
   const loadingMode = getLoadingMode();
   let offset = SpreadsheetApp.getActiveSheet().getLastRow() - 1;
-  let count = DEFAULT_COUNT;
+  const loadCount = loadingMode === 'folio' ? FOLIO_LOAD_COUNT : METADB_LOAD_COUNT;
+  const enrichCount = loadingMode === 'folio' ? FOLIO_ENRICH_COUNT : METADB_ENRICH_COUNT;
   let items;
   if (loadingMode === 'folio') {
     console.log("Loading items in 'folio' mode.");
-    items = loadItemsFolio(locationId, offset, count);
+    items = loadItemsFolio(locationId, offset, loadCount);
   } else {
     console.log("Loading items in 'metadb' mode.");
     let locationCode = LOCATIONS[locationId]?.['code'];
-    items = loadItemsMetadb(locationCode, startCallNumberPrefix, endCallNumberPrefix, offset, count);
+    items = loadItemsMetadb(locationCode, startCallNumberPrefix, endCallNumberPrefix, offset, loadCount);
   }
-  console.log(`writing items to sheet with offset ${offset} and count ${count}`);
+  console.log(`writing items to sheet with offset ${offset} and count ${loadCount}`);
   if (items.length == 0) {
     console.log("Loaded all items for this sheet");
     SpreadsheetApp.getActiveSheet().setTabColor(TAB_COMPLETE_COLOR);
@@ -244,19 +248,33 @@ function tryLoadMoreItems(sheetName) {
     return;
   }
 
-  let row = SpreadsheetApp.getActiveSheet().getLastRow();
-  for (const item of items) {
-    row++;
-    if (loadingMode === 'folio') {
+  if (loadingMode === 'folio') {
+    for (const item of items) {
       enrichItem(item, true, true, true);
       normalizeFolioItem(item);
+      if (killSwitchFlipped()) {
+        stopMonitoring();
+        return;
+      }
     }
-    enrichFromOclc(item);
-    enrichFromHathi(item);
-    writeItemToSheet(row, item);
-    initDecision(row);
-    if (row % FLUSH_RATE == 0) {
-      SpreadsheetApp.flush();
+  }
+
+  let row = SpreadsheetApp.getActiveSheet().getLastRow();
+  for (let i = 0; i < items.length; i += enrichCount) {
+    const batch = items.slice(i, i + enrichCount);
+    enrichBatchFromOclc(batch);
+    if (killSwitchFlipped()) {
+      stopMonitoring();
+      return;
+    }
+    enrichBatchFromHathi(batch);
+    for (const item of batch) {
+      row++;
+      writeItemToSheet(row, item);
+      initDecision(row);
+      if (row % FLUSH_RATE == 0) {
+        SpreadsheetApp.flush();
+      }
     }
     if (killSwitchFlipped()) {
       break;

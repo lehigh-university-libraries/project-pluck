@@ -5,21 +5,39 @@ function initHathi() {
   // logTime('after Hathi init');
 }
 
-function enrichFromHathi(item) {
-  const oclcNumber = parseOclcNumber(item, true);
-  if (!oclcNumber) {
-    console.log("Cannot enrich from Hathi, no OCLC num.")
-    return;
-  }
-  const volumes = loadVolumesBrief(oclcNumber);
-  item.hathi = volumes;
-  // logTime('after Hathi enrichment');
+function buildVolumesBriefRequest(oclcNumber) {
+  return {
+    url: HATHI_BASE_URL + `/brief/oclc/${oclcNumber}.json`,
+    muteHttpExceptions: true,
+  };
 }
 
-function loadVolumesBrief(oclcNumber) {
-  const url = `/brief/oclc/${oclcNumber}.json`;
-  const volumes = queryHathiGet(url);
-  return volumes;
+function enrichBatchFromHathi(items) {
+  const requestMap = [];
+  for (const item of items) {
+    const oclcNumber = parseOclcNumber(item);
+    if (!oclcNumber) continue;
+    requestMap.push({ item, request: buildVolumesBriefRequest(oclcNumber) });
+  }
+  if (requestMap.length === 0) return;
+
+  console.log(`Fetching Hathi data for ${requestMap.length} items.`);
+  const responses = UrlFetchApp.fetchAll(requestMap.map(r => r.request));
+  console.log(`Hathi fetch complete.`);
+  for (let i = 0; i < responses.length; i++) {
+    const response = responses[i];
+    const item = requestMap[i].item;
+    const code = response.getResponseCode();
+    if (code === 404) {
+      console.log(`Hathi: no record found for ${item.barcode}`);
+      item.hathi = null;
+    } else if (code < 200 || code >= 400) {
+      console.error(`Hathi batch error for ${item.barcode}: ${code}`);
+      item.hathi = null;
+    } else {
+      item.hathi = JSON.parse(response.getContentText());
+    }
+  }
 }
 
 function parseHathiEbook(item) {
@@ -31,21 +49,3 @@ function parseHathiEbook(item) {
   return rightsCodesString;
 }
 
-function queryHathiGet(url) {
-  // execute query
-  const query = HATHI_BASE_URL + url;
-  console.log('Executing GET query: ', query);
-  const response = UrlFetchApp.fetch(query);
-
-  // parse response
-  const responseText = response.getContentText();
-  if (response.getResponseCode() < 200 || response.getResponseCode() >= 400) {
-    console.error(`Error response: ${response.getResponseCode()}, ${responseText}`);
-    return null;
-  }
-  else {
-    const responseData = JSON.parse(responseText);
-    // console.log("response data: ", responseData);
-    return responseData;
-  }
-}

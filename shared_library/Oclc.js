@@ -24,20 +24,38 @@ function authenticateOclc(id, secret) {
     .setPropertyStore(properties);
 }
 
-function enrichFromOclc(item) {
-  const oclcNumber = parseOclcNumber(item, true);
-  if (!oclcNumber) {
-    console.log("Cannot enrich from OCLC, no OCLC num.")
-    return;
-  }
-  const bibsHoldings = loadBibsHoldings(oclcNumber);
-  item.oclcBibsHoldings = bibsHoldings;
-  // logTime('after OCLC enrichment');
+function buildBibsHoldingsRequest(oclcNumber, token) {
+  return {
+    url: WORLDCATSEARCH_BASE_URL + `/bibs-holdings?oclcNumber=${oclcNumber}&limit=50`,
+    muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + token },
+  };
 }
 
-function loadBibsHoldings(oclcNumber) {
-  const url = `/bibs-holdings?oclcNumber=${oclcNumber}&limit=50`;
-  return queryWorldCatSearchGet(url);
+function enrichBatchFromOclc(items) {
+  const token = WORLDCAT_SEARCH_SERVICE.getAccessToken();
+  const requestMap = [];
+  for (const item of items) {
+    const oclcNumber = parseOclcNumber(item);
+    if (!oclcNumber) continue;
+    requestMap.push({ item, request: buildBibsHoldingsRequest(oclcNumber, token) });
+  }
+  if (requestMap.length === 0) return;
+
+  console.log(`Fetching OCLC data for ${requestMap.length} items.`);
+  const responses = UrlFetchApp.fetchAll(requestMap.map(r => r.request));
+  console.log(`OCLC fetch complete.`);
+  for (let i = 0; i < responses.length; i++) {
+    const response = responses[i];
+    const item = requestMap[i].item;
+    const code = response.getResponseCode();
+    if (code < 200 || code >= 400) {
+      console.error(`OCLC batch error for ${item.barcode}: ${code}`);
+      item.oclcBibsHoldings = null;
+    } else {
+      item.oclcBibsHoldings = JSON.parse(response.getContentText());
+    }
+  }
 }
 
 function parseOclcHoldings(item) {
@@ -61,24 +79,3 @@ function parsePalciHoldings(item) {
   return matches.length + '+';
 }
 
-function queryWorldCatSearchGet(url) {
-  const query = WORLDCATSEARCH_BASE_URL + url;
-  console.log('Executing GET query: ', query);
-  const token = WORLDCAT_SEARCH_SERVICE.getAccessToken();
-  let response = UrlFetchApp.fetch(query, {
-    muteHttpExceptions: true,
-    headers: {
-      Authorization: 'Bearer ' + token,
-    },
-  }); 
-  const responseText = response.getContentText();
-  if (response.getResponseCode() < 200 || response.getResponseCode() >= 400) {
-    console.error(`Error response: ${response.getResponseCode()}, ${responseText}`);
-    return null;
-  }
-  else {
-    const responseData = JSON.parse(responseText);
-    // console.log("response data: ", responseData);
-    return responseData;
-  }
-}
