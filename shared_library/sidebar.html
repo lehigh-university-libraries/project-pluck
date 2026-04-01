@@ -162,15 +162,8 @@
       }
 
       function applySheetState(state) {
-        if (!state.hasItems) {
-          const hasValues = $('#location').prop('selectedIndex') !== 0 ||
-                            $('#start_call_number_prefix').val() !== '' ||
-                            $('#end_call_number_prefix').val() !== '';
-          if (!hasValues) {
-            $('#location').prop('selectedIndex', 0);
-            $('#start_call_number_prefix').val('');
-            $('#end_call_number_prefix').val('');
-          }
+        if (!state.sheetLocked) {
+          unlockLoadItems();
           return;
         }
         $('#location').val(state.locationId);
@@ -186,9 +179,6 @@
           .withSuccessHandler(function(state) {
             if (state.sheetName === currentSheetName) return;
             currentSheetName = state.sheetName;
-            $('#location').prop('disabled', false);
-            $('#start_call_number_prefix').prop('disabled', false);
-            $('#end_call_number_prefix').prop('disabled', false);
             applySheetState(state);
           })
           .getActiveSheetState();

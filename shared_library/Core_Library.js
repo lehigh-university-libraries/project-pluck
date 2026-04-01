@@ -171,10 +171,9 @@ function showDeveloperInfo() {
   const metadata = Object.fromEntries(
     sheet.getDeveloperMetadata().map(m => [m.getKey(), m.getValue()])
   );
-  const hasItems = sheet.getLastRow() > 1;
   SpreadsheetApp.getUi().alert(
     `Sheet: ${sheet.getName()}\n` +
-    `Has items: ${hasItems}\n` +
+    `Sheet locked: ${metadata['sheet_locked'] === 'true'}\n` +
     `Location ID: ${metadata['location_id'] ?? null}\n` +
     `Start call number prefix: ${metadata['start_call_number_prefix'] ?? null}\n` +
     `End call number prefix: ${metadata['end_call_number_prefix'] ?? null}`

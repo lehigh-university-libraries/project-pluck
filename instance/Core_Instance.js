@@ -33,6 +33,7 @@ function initSheetForLocation(environment, location_id, start_call_number_prefix
   setSheetMetadata(sheet, 'location_id', location_id);
   setSheetMetadata(sheet, 'start_call_number_prefix', start_call_number_prefix);
   setSheetMetadata(sheet, 'end_call_number_prefix', end_call_number_prefix);
+  setSheetMetadata(sheet, 'sheet_locked', 'true');
   initProperties();
   ProjectPluck.initSheetForLocation();
 }
@@ -96,7 +97,7 @@ function getActiveSheetState() {
   );
   return {
     sheetName: sheet.getName(),
-    hasItems: sheet.getLastRow() > 1,
+    sheetLocked: metadata['sheet_locked'] === 'true',
     locationId: metadata['location_id'] ?? null,
     startCallNumberPrefix: metadata['start_call_number_prefix'] ?? null,
     endCallNumberPrefix: metadata['end_call_number_prefix'] ?? null,
