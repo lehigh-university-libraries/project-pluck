@@ -264,23 +264,6 @@ function stopLoading() {
 }
 
 
-function getSheetMetadata(sheet, key) {
-  const found = sheet.createDeveloperMetadataFinder().withKey(key).find();
-  return found.length > 0 ? found[0].getValue() : null;
-}
-
-function setSheetMetadata(sheet, key, value) {
-  const found = sheet.createDeveloperMetadataFinder().withKey(key).find();
-  if (found.length > 0) {
-    found[0].setValue(value);
-  } else {
-    sheet.addDeveloperMetadata(key, value);
-  }
-}
-
-function deleteSheetMetadata(sheet, key) {
-  sheet.createDeveloperMetadataFinder().withKey(key).find().forEach(m => m.remove());
-}
 
 
 
