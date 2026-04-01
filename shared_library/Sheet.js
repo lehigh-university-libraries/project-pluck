@@ -108,6 +108,8 @@ function writeItemToSheet(sheet, row, item) {
 
 function writeHeaders(sheet) {
   if (getSheetMetadata(sheet, 'headers')) return;
+  const maxRows = sheet.getMaxRows();
+  if (maxRows > 2) sheet.deleteRows(3, maxRows - 2);
   const activeHeaders = getActiveHeaders();
   setSheetMetadata(sheet, 'headers', JSON.stringify(activeHeaders));
   headers = activeHeaders;

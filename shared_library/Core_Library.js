@@ -1,6 +1,6 @@
 
 const FOLIO_LOAD_COUNT = 50;
-const METADB_LOAD_COUNT = 500;
+const METADB_LOAD_COUNT = 1000;
 const FOLIO_ENRICH_COUNT = 50;
 const METADB_ENRICH_COUNT = 50;
 const FLUSH_RATE = 5;
@@ -189,6 +189,9 @@ function tryLoadMoreItems(sheet) {
   let offset = sheet.getLastRow() - 1;
   const loadCount = loadingMode === 'folio' ? FOLIO_LOAD_COUNT : METADB_LOAD_COUNT;
   const enrichCount = loadingMode === 'folio' ? FOLIO_ENRICH_COUNT : METADB_ENRICH_COUNT;
+  const needed = sheet.getLastRow() + loadCount - sheet.getMaxRows();
+  if (needed > 0) sheet.insertRowsAfter(sheet.getMaxRows(), needed);
+
   let items;
   if (loadingMode === 'folio') {
     console.log("Loading items in 'folio' mode.");
