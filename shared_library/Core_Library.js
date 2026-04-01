@@ -1,55 +1,3 @@
-// column headers
-const BARCODE = 'barcode';
-const EFFECTIVE_CALL_NUMBER = 'effective_call_number';
-const TITLE = 'title';
-const CONTRIBUTOR = 'contributor';
-const PUBLICATION_DATE = 'publication_date';
-const ITEM_STATUS = 'item_status';
-const RETENTION = 'EAST Retention';
-const FACULTY_AUTHOR = 'Faculty Author';
-const LEGACY_CIRC_COUNT = 'ole_circ_count';
-const FOLIO_CIRC_COUNT = 'folio_circ_count';
-const OCLC_NUMBER = 'oclc_number';
-const OCLC_HOLDINGS = 'OCLC Holdings';
-const PALCI_HOLDINGS = 'PALCI Holdings';
-const HATHI_EBOOK = 'Hathi e-book';
-const INSTANCE_UUID = 'instance_uuid';
-const INSTANCE_HRID = 'instance_hrid';
-const ITEM_EFFECTIVE_LOCATION_NAME = 'item_effective_location_name';
-const HOLDINGS_PERMANENT_LOCATION_NAME = 'holdings_permanent_location_name';
-const MATERIAL_TYPE = 'material_type';
-const DECISION = 'Decision';
-const DECISION_ADDENDUM = 'Decision Note';
-const ADD_DECISION_STATUS = 'Add Decision Status';
-const PROCESS_FINAL_STATE_STATUS = 'Process Final State Status';
-
-const HEADERS = [
-  BARCODE,
-  EFFECTIVE_CALL_NUMBER,
-  TITLE,
-  CONTRIBUTOR,
-  PUBLICATION_DATE,
-  ITEM_STATUS,
-  RETENTION,
-  FACULTY_AUTHOR,
-  LEGACY_CIRC_COUNT,
-  FOLIO_CIRC_COUNT,
-  OCLC_NUMBER,
-  OCLC_HOLDINGS,
-  PALCI_HOLDINGS,
-  HATHI_EBOOK,
-  INSTANCE_UUID,
-  INSTANCE_HRID,
-  ITEM_EFFECTIVE_LOCATION_NAME,
-  HOLDINGS_PERMANENT_LOCATION_NAME,
-  MATERIAL_TYPE,
-  DECISION,
-  DECISION_ADDENDUM,
-  ADD_DECISION_STATUS,
-  PROCESS_FINAL_STATE_STATUS,
-];
-
-const MAX_COLUMNS = HEADERS.length;
 
 const FOLIO_LOAD_COUNT = 50;
 const METADB_LOAD_COUNT = 500;
@@ -144,9 +92,11 @@ function initProperties(instanceProperties) {
 }
 
 function onOpen() {
-  var ui = SpreadsheetApp.getUi();
-  ui.createMenu('Project Pluck')
+  SpreadsheetApp.getUi()
+    .createMenu('Project Pluck')
     .addItem('Show Sidebar', 'showSidebar')
+    .addSeparator()
+    .addItem('Select columns', 'showColumnPreferences')
     .addItem('Reload FOLIO metadata', 'reloadFolioMetadata')
     .addItem('Show developer info', 'showDeveloperInfo')
     .addToUi();
@@ -159,6 +109,7 @@ function showSidebar() {
   SpreadsheetApp.getUi()
     .showSidebar(html);
 }
+
 
 function reloadFolioMetadata() {
   clearCache();
@@ -177,7 +128,8 @@ function showDeveloperInfo() {
     `Loading active: ${metadata['loading_active'] === 'true'}\n` +
     `Location ID: ${metadata['location_id'] ?? null}\n` +
     `Start call number prefix: ${metadata['start_call_number_prefix'] ?? null}\n` +
-    `End call number prefix: ${metadata['end_call_number_prefix'] ?? null}`
+    `End call number prefix: ${metadata['end_call_number_prefix'] ?? null}\n` +
+    `Columns: ${metadata['headers'] ? JSON.parse(metadata['headers']).join(', ') : 'all (default)'}`
   );
 }
 
@@ -219,9 +171,13 @@ function tryLoadMoreItems(sheet) {
 
   startMonitoring();
 
+  headers = getSheetHeaders(sheet);
+  const loadOclc = headers.some(h => ALL_HEADERS.get(h) === OCLC_SOURCE);
+  const loadHathi = headers.some(h => ALL_HEADERS.get(h) === HATHI_SOURCE);
+
   initFolio();
-  initOclc();
-  initHathi();
+  if (loadOclc) initOclc();
+  if (loadHathi) initHathi();
   writeHeaders(sheet);
 
   const locationId            = getSheetMetadata(sheet, 'location_id');
@@ -267,13 +223,13 @@ function tryLoadMoreItems(sheet) {
   let row = sheet.getLastRow();
   for (let i = 0; i < items.length; i += enrichCount) {
     const batch = items.slice(i, i + enrichCount);
-    enrichBatchFromOclc(batch);
+    if (loadOclc) enrichBatchFromOclc(batch);
     if (killSwitchFlipped()) {
       deleteSheetMetadata(sheet, 'loading_active');
       stopMonitoring();
       return;
     }
-    enrichBatchFromHathi(batch);
+    if (loadHathi) enrichBatchFromHathi(batch);
     for (const item of batch) {
       row++;
       writeItemToSheet(sheet, row, item);
@@ -307,17 +263,6 @@ function stopLoading() {
   flipKillSwitch();
 }
 
-function writeHeaders(sheet) {
-  sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
-  sheet.setFrozenRows(1);
-
-  // Text barcode -- allow leading zeroes
-  let column = getColumnLetter(BARCODE);
-  sheet.getRange(`${column}1:${column}`).setNumberFormat("@");
-
-  column = getColumnLetter(PALCI_HOLDINGS);
-  sheet.getRange(`${column}1:${column}`).setHorizontalAlignment("right");
-}
 
 function getSheetMetadata(sheet, key) {
   const found = sheet.createDeveloperMetadataFinder().withKey(key).find();
@@ -337,74 +282,21 @@ function deleteSheetMetadata(sheet, key) {
   sheet.createDeveloperMetadataFinder().withKey(key).find().forEach(m => m.remove());
 }
 
-function writeTabName(sheet, locationId, startCallNumberPrefix, endCallNumberPrefix) {
-  const code = LOCATIONS[locationId]?.['code'];
-  const name = (getLoadingMode() === 'metadb')
-    ? `${startCallNumberPrefix} - ${endCallNumberPrefix} | ${code}`
-    : code;
-  sheet.setName(name);
-  setSheetMetadata(sheet, 'location_id', locationId);
-  setSheetMetadata(sheet, 'start_call_number_prefix', startCallNumberPrefix ?? '');
-  setSheetMetadata(sheet, 'end_call_number_prefix', endCallNumberPrefix ?? '');
-}
 
-function getColumn(text) {
-  let index = HEADERS.findIndex((element) => element == text);
-  if (index < 0) {
-    return null;
-  }
-  return index + 1;
-}
 
-function getColumnLetter(text) {
-  return String.fromCharCode(64 + getColumn(text))
-}
-
-function writeItemToSheet(sheet, row, item) {
-  initWriteToRow();
-  writeToRow(getColumn(BARCODE), item.barcode);
-  writeToRow(getColumn(EFFECTIVE_CALL_NUMBER), item['effective_call_number']);
-  writeToRow(getColumn(TITLE), item.title);
-  writeToRow(getColumn(CONTRIBUTOR), item.contributor);
-  writeToRow(getColumn(PUBLICATION_DATE), item.publication_date);
-  writeToRow(getColumn(ITEM_STATUS), item['item_status']);
-  writeToRow(getColumn(RETENTION), hasRetentionAgreement(item));
-  writeToRow(getColumn(FACULTY_AUTHOR), isFacultyAuthor(item));
-  writeToRow(getColumn(LEGACY_CIRC_COUNT), parseLegacyCircCount(item));
-  writeToRow(getColumn(FOLIO_CIRC_COUNT), parseFolioCircCount(item));
-  writeToRow(getColumn(OCLC_NUMBER), item.oclc_number);  // parseOclcNumber(item));
-  writeToRow(getColumn(OCLC_HOLDINGS), parseOclcHoldings(item));
-  writeToRow(getColumn(PALCI_HOLDINGS), parsePalciHoldings(item));
-  writeToRow(getColumn(HATHI_EBOOK), parseHathiEbook(item));
-  writeToRow(getColumn(INSTANCE_UUID), item.instance_uuid);
-  writeToRow(getColumn(INSTANCE_HRID), item.instance_hrid);
-  writeToRow(getColumn(ITEM_EFFECTIVE_LOCATION_NAME), item['item_effective_location_name']);
-  writeToRow(getColumn(HOLDINGS_PERMANENT_LOCATION_NAME), item['holdings_permanent_location_name']);
-  writeToRow(getColumn(MATERIAL_TYPE), item['material_type']);
-  commitWriteToRow(sheet, row);
-}
-
-let writeBuffer;
-function initWriteToRow() {
-  writeBuffer = Array(MAX_COLUMNS).fill('');
-}
-function writeToRow(column, value) {
-  writeBuffer[column - 1] = value;
-}
-function commitWriteToRow(sheet, row) {
-  sheet.getRange(row, 1, 1, MAX_COLUMNS).setValues([writeBuffer]);
-}
 
 function initDecision(sheet, row) {
   sheet.getRange(row, getColumn(DECISION)).setDataValidation(DECISIONS_RULE);
 }
 
 function addDecisions() {
+  headers = getSheetHeaders(SpreadsheetApp.getActiveSheet());
   initFolio();
   processSelectedRows(addDecision);
 }
 
 function processFinalStates() {
+  headers = getSheetHeaders(SpreadsheetApp.getActiveSheet());
   initFolio();
   processSelectedRows(processFinalState);
 }

@@ -104,6 +104,20 @@ function getActiveSheetState() {
   };
 }
 
+function showColumnPreferences() {
+  ProjectPluck.showColumnPreferences();
+}
+
+function getColumnPreferencesData() {
+  initProperties();
+  return ProjectPluck.getColumnPreferencesData();
+}
+
+function saveColumnPreferences(prefs) {
+  initProperties();
+  ProjectPluck.saveColumnPreferences(prefs);
+}
+
 function checkProperties() {
   getLoadingMode();
 }

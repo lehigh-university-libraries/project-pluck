@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 13px; margin: 12px; }
+    h3 { margin: 0 0 12px; font-size: 14px; }
+    fieldset { border: none; margin: 0 0 12px; padding: 0; }
+    legend { font-weight: bold; color: #555; font-size: 11px; text-transform: uppercase;
+             letter-spacing: 0.05em; margin-bottom: 4px; }
+    label { display: block; padding: 2px 0; cursor: pointer; }
+    label.locked { color: #999; cursor: default; }
+    .buttons { margin-top: 16px; display: flex; gap: 8px; }
+    button { padding: 6px 16px; font-size: 13px; cursor: pointer; }
+    #save { background: #1a73e8; color: white; border: none; border-radius: 4px; }
+    #save:disabled { background: #aaa; cursor: default; }
+    #cancel { background: white; border: 1px solid #ccc; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h3>Select columns to load on new tabs</h3>
+  <div id="groups"></div>
+  <div class="buttons">
+    <button id="save" disabled onclick="save()">Save</button>
+    <button id="cancel" onclick="google.script.host.close()">Cancel</button>
+  </div>
+
+  <script>
+    const SOURCE_LABELS = {
+      initialLoad: 'Initial load',
+      oclc: 'OCLC',
+      hathi: 'Hathi',
+      decisions: 'Decisions',
+    };
+
+    let columnData = [];
+
+    google.script.run
+      .withSuccessHandler(function(data) {
+        columnData = data;
+        render(data);
+        document.getElementById('save').disabled = false;
+      })
+      .getColumnPreferencesData();
+
+    function render(data) {
+      const container = document.getElementById('groups');
+      const groups = {};
+      for (const col of data) {
+        if (!groups[col.source]) groups[col.source] = [];
+        groups[col.source].push(col);
+      }
+      for (const [source, cols] of Object.entries(groups)) {
+        const fieldset = document.createElement('fieldset');
+        const legend = document.createElement('legend');
+        legend.textContent = SOURCE_LABELS[source] || source;
+        fieldset.appendChild(legend);
+        for (const col of cols) {
+          const lbl = document.createElement('label');
+          if (col.locked) lbl.className = 'locked';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.name = col.name;
+          cb.checked = col.enabled;
+          cb.disabled = col.locked;
+          lbl.appendChild(cb);
+          lbl.append(' ' + col.name);
+          fieldset.appendChild(lbl);
+        }
+        container.appendChild(fieldset);
+      }
+    }
+
+    function save() {
+      const prefs = {};
+      for (const col of columnData) {
+        if (col.locked) {
+          prefs[col.name] = true;
+        } else {
+          const cb = document.querySelector(`input[name="${CSS.escape(col.name)}"]`);
+          prefs[col.name] = cb ? cb.checked : true;
+        }
+      }
+      document.getElementById('save').disabled = true;
+      google.script.run
+        .withSuccessHandler(function() { google.script.host.close(); })
+        .saveColumnPreferences(prefs);
+    }
+  </script>
+</body>
+</html>
