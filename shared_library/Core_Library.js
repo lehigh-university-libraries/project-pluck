@@ -272,10 +272,11 @@ function scheduleLoadMoreItems() {
   for (const trigger of triggers) {
     ScriptApp.deleteTrigger(trigger);
   }
-  ScriptApp.newTrigger('loadMoreItems')
+  const trigger = ScriptApp.newTrigger('loadMoreItems')
     .timeBased()
     .after(PAUSE_TIME)
     .create();
+  console.log('loadMoreItems trigger scheduled to fire at: ' + new Date(Date.now() + PAUSE_TIME));
 }
 
 function stopLoading() {
