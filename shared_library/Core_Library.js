@@ -204,6 +204,9 @@ function tryLoadMoreItems(sheet) {
   console.log(`writing items to sheet with offset ${offset} and count ${loadCount}`);
   if (items.length == 0) {
     console.log("Loaded all items for this sheet");
+    const lastRow = sheet.getLastRow();
+    const blankRows = sheet.getMaxRows() - lastRow;
+    if (blankRows > 0) sheet.deleteRows(lastRow + 1, blankRows);
     sheet.setTabColor(TAB_COMPLETE_COLOR);
     deleteSheetMetadata(sheet, 'loading_active');
     email(`${sheet.getName()} load complete`, `Google Sheets is done loading the items ${sheet.getName()}.`);
