@@ -174,6 +174,7 @@ function showDeveloperInfo() {
   SpreadsheetApp.getUi().alert(
     `Sheet: ${sheet.getName()}\n` +
     `Sheet locked: ${metadata['sheet_locked'] === 'true'}\n` +
+    `Loading active: ${metadata['loading_active'] === 'true'}\n` +
     `Location ID: ${metadata['location_id'] ?? null}\n` +
     `Start call number prefix: ${metadata['start_call_number_prefix'] ?? null}\n` +
     `End call number prefix: ${metadata['end_call_number_prefix'] ?? null}`
@@ -194,39 +195,42 @@ function initSheetForLocation() {
 }
 
 function loadMoreItems() {
-  const sheetName = properties.getProperty('lastSheetName');
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()
+    .find(s => s.createDeveloperMetadataFinder().withKey('loading_active').find().length > 0);
+  if (!sheet) {
+    console.log('No sheet with loading_active found');
+    return;
+  }
   try {
-    tryLoadMoreItems(sheetName);    
+    tryLoadMoreItems(sheet);
   }
   catch (error) {
     console.log('Error loading items: ', error);
-    email(`Error loading items to ${sheetName}`, `${error}`);
+    email(`Error loading items to ${sheet.getName()}`, `${error}`);
   }
 }
 
-function tryLoadMoreItems(sheetName) {
+function tryLoadMoreItems(sheet) {
   if (killSwitchFlipped()) {
+    deleteSheetMetadata(sheet, 'loading_active');
     stopMonitoring();
     return;
   }
 
   startMonitoring();
 
-  SpreadsheetApp.getActive().getSheetByName(sheetName).activate();
-
   initFolio();
   initOclc();
   initHathi();
-  writeHeaders();
+  writeHeaders(sheet);
 
-  const sheet = SpreadsheetApp.getActive().getSheetByName(sheetName);
   const locationId            = getSheetMetadata(sheet, 'location_id');
   const startCallNumberPrefix = getSheetMetadata(sheet, 'start_call_number_prefix');
   const endCallNumberPrefix   = getSheetMetadata(sheet, 'end_call_number_prefix');
-  writeTabName(locationId, startCallNumberPrefix, endCallNumberPrefix);
+  writeTabName(sheet, locationId, startCallNumberPrefix, endCallNumberPrefix);
 
   const loadingMode = getLoadingMode();
-  let offset = SpreadsheetApp.getActiveSheet().getLastRow() - 1;
+  let offset = sheet.getLastRow() - 1;
   const loadCount = loadingMode === 'folio' ? FOLIO_LOAD_COUNT : METADB_LOAD_COUNT;
   const enrichCount = loadingMode === 'folio' ? FOLIO_ENRICH_COUNT : METADB_ENRICH_COUNT;
   let items;
@@ -241,8 +245,9 @@ function tryLoadMoreItems(sheetName) {
   console.log(`writing items to sheet with offset ${offset} and count ${loadCount}`);
   if (items.length == 0) {
     console.log("Loaded all items for this sheet");
-    SpreadsheetApp.getActiveSheet().setTabColor(TAB_COMPLETE_COLOR);
-    email(`${sheetName} load complete`, `Google Sheets is done loading the items ${sheetName}.`);
+    sheet.setTabColor(TAB_COMPLETE_COLOR);
+    deleteSheetMetadata(sheet, 'loading_active');
+    email(`${sheet.getName()} load complete`, `Google Sheets is done loading the items ${sheet.getName()}.`);
     stopMonitoring();
     return;
   }
@@ -252,25 +257,27 @@ function tryLoadMoreItems(sheetName) {
       enrichItem(item, true, true, true);
       normalizeFolioItem(item);
       if (killSwitchFlipped()) {
+        deleteSheetMetadata(sheet, 'loading_active');
         stopMonitoring();
         return;
       }
     }
   }
 
-  let row = SpreadsheetApp.getActiveSheet().getLastRow();
+  let row = sheet.getLastRow();
   for (let i = 0; i < items.length; i += enrichCount) {
     const batch = items.slice(i, i + enrichCount);
     enrichBatchFromOclc(batch);
     if (killSwitchFlipped()) {
+      deleteSheetMetadata(sheet, 'loading_active');
       stopMonitoring();
       return;
     }
     enrichBatchFromHathi(batch);
     for (const item of batch) {
       row++;
-      writeItemToSheet(row, item);
-      initDecision(row);
+      writeItemToSheet(sheet, row, item);
+      initDecision(sheet, row);
       if (row % FLUSH_RATE == 0) {
         SpreadsheetApp.flush();
       }
@@ -300,16 +307,16 @@ function stopLoading() {
   flipKillSwitch();
 }
 
-function writeHeaders() {
-  SpreadsheetApp.getActiveSheet().getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
-  SpreadsheetApp.getActiveSheet().setFrozenRows(1);
+function writeHeaders(sheet) {
+  sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+  sheet.setFrozenRows(1);
 
   // Text barcode -- allow leading zeroes
   let column = getColumnLetter(BARCODE);
-  SpreadsheetApp.getActiveSheet().getRange(`${column}1:${column}`).setNumberFormat("@");
+  sheet.getRange(`${column}1:${column}`).setNumberFormat("@");
 
   column = getColumnLetter(PALCI_HOLDINGS);
-  SpreadsheetApp.getActiveSheet().getRange(`${column}1:${column}`).setHorizontalAlignment("right");
+  sheet.getRange(`${column}1:${column}`).setHorizontalAlignment("right");
 }
 
 function getSheetMetadata(sheet, key) {
@@ -326,17 +333,19 @@ function setSheetMetadata(sheet, key, value) {
   }
 }
 
-function writeTabName(locationId, startCallNumberPrefix, endCallNumberPrefix) {
+function deleteSheetMetadata(sheet, key) {
+  sheet.createDeveloperMetadataFinder().withKey(key).find().forEach(m => m.remove());
+}
+
+function writeTabName(sheet, locationId, startCallNumberPrefix, endCallNumberPrefix) {
   const code = LOCATIONS[locationId]?.['code'];
   const name = (getLoadingMode() === 'metadb')
     ? `${startCallNumberPrefix} - ${endCallNumberPrefix} | ${code}`
     : code;
-  const sheet = SpreadsheetApp.getActiveSheet();
   sheet.setName(name);
   setSheetMetadata(sheet, 'location_id', locationId);
   setSheetMetadata(sheet, 'start_call_number_prefix', startCallNumberPrefix ?? '');
   setSheetMetadata(sheet, 'end_call_number_prefix', endCallNumberPrefix ?? '');
-  properties.setProperty('lastSheetName', sheet.getName());
 }
 
 function getColumn(text) {
@@ -351,7 +360,7 @@ function getColumnLetter(text) {
   return String.fromCharCode(64 + getColumn(text))
 }
 
-function writeItemToSheet(row, item) {
+function writeItemToSheet(sheet, row, item) {
   initWriteToRow();
   writeToRow(getColumn(BARCODE), item.barcode);
   writeToRow(getColumn(EFFECTIVE_CALL_NUMBER), item['effective_call_number']);
@@ -372,7 +381,7 @@ function writeItemToSheet(row, item) {
   writeToRow(getColumn(ITEM_EFFECTIVE_LOCATION_NAME), item['item_effective_location_name']);
   writeToRow(getColumn(HOLDINGS_PERMANENT_LOCATION_NAME), item['holdings_permanent_location_name']);
   writeToRow(getColumn(MATERIAL_TYPE), item['material_type']);
-  commitWriteToRow(row);
+  commitWriteToRow(sheet, row);
 }
 
 let writeBuffer;
@@ -382,12 +391,12 @@ function initWriteToRow() {
 function writeToRow(column, value) {
   writeBuffer[column - 1] = value;
 }
-function commitWriteToRow(row) {
-  SpreadsheetApp.getActiveSheet().getRange(row, 1, 1, MAX_COLUMNS).setValues([writeBuffer]);
+function commitWriteToRow(sheet, row) {
+  sheet.getRange(row, 1, 1, MAX_COLUMNS).setValues([writeBuffer]);
 }
 
-function initDecision(row) {
-  SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION)).setDataValidation(DECISIONS_RULE);
+function initDecision(sheet, row) {
+  sheet.getRange(row, getColumn(DECISION)).setDataValidation(DECISIONS_RULE);
 }
 
 function addDecisions() {

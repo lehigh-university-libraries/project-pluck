@@ -28,12 +28,12 @@ function getLocationsAndSheetState(environment) {
 }
 function initSheetForLocation(environment, location_id, start_call_number_prefix, end_call_number_prefix) {
   PropertiesService.getScriptProperties().setProperty("environment", environment);
-  PropertiesService.getScriptProperties().setProperty('lastSheetName', SpreadsheetApp.getActiveSheet().getSheetName());
   const sheet = SpreadsheetApp.getActiveSheet();
   setSheetMetadata(sheet, 'location_id', location_id);
   setSheetMetadata(sheet, 'start_call_number_prefix', start_call_number_prefix);
   setSheetMetadata(sheet, 'end_call_number_prefix', end_call_number_prefix);
   setSheetMetadata(sheet, 'sheet_locked', 'true');
+  setSheetMetadata(sheet, 'loading_active', 'true');
   initProperties();
   ProjectPluck.initSheetForLocation();
 }
