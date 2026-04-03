@@ -178,6 +178,11 @@ function hasRetentionAgreement(item) {
   return codes.some(code => RETENTION_CODES.includes(code));
 }
 
+function isInventoried(item) {
+  const codes = (item.statistical_codes || '').split('; ');
+  return codes.some(code => INVENTORIED_CODES.includes(code));
+}
+
 function isFacultyAuthor(item) {
   return item.faculty_author;
 }

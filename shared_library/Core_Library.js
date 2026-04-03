@@ -39,6 +39,11 @@ const RETENTION_CODES = [
   'EAST',
 ]
 
+// Inventored Statistical Codes
+const INVENTORIED_CODES = [
+  'INV-2025',
+]
+
 // Decision Note
 const DECISION_NOTE_ITEM_TYPE = 'Project Pluck Decision';
 

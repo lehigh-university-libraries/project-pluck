@@ -6,6 +6,7 @@ const CONTRIBUTOR = 'Contributor';
 const PUBLICATION_DATE = 'Publication Date';
 const ITEM_STATUS = 'Item Status';
 const RETENTION = 'EAST Retention';
+const INVENTORIED = 'Inventoried';
 const FACULTY_AUTHOR = 'Faculty Author';
 const LEGACY_CIRC_COUNT = 'OLE Circ Count';
 const FOLIO_CIRC_COUNT = 'FOLIO Circ Count';
@@ -38,6 +39,7 @@ const ALL_HEADERS = new Map([
   [PUBLICATION_DATE,                 INITIAL_LOAD],
   [ITEM_STATUS,                      INITIAL_LOAD],
   [RETENTION,                        INITIAL_LOAD],
+  [INVENTORIED,                      INITIAL_LOAD],
   [FACULTY_AUTHOR,                   INITIAL_LOAD],
   [LEGACY_CIRC_COUNT,                INITIAL_LOAD],
   [FOLIO_CIRC_COUNT,                 INITIAL_LOAD],
@@ -93,6 +95,7 @@ function writeItemToSheet(sheet, row, item) {
   writeToRow(getColumn(PUBLICATION_DATE), item.publication_date);
   writeToRow(getColumn(ITEM_STATUS), item['item_status']);
   writeToRow(getColumn(RETENTION), hasRetentionAgreement(item));
+  writeToRow(getColumn(INVENTORIED), isInventoried(item));
   writeToRow(getColumn(FACULTY_AUTHOR), isFacultyAuthor(item));
   writeToRow(getColumn(LEGACY_CIRC_COUNT), parseLegacyCircCount(item));
   writeToRow(getColumn(FOLIO_CIRC_COUNT), parseFolioCircCount(item));
