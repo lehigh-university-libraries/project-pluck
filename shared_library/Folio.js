@@ -187,6 +187,13 @@ function parseFolioCircCount(item) {
   return item.folio_circ_count;
 }
 
+function parseDamage(item) {
+  const note = item['damage_inventory_note'];
+  if (!note) return null;
+  const cutoff = note.indexOf('Inventoried at');
+  return cutoff === -1 ? note : note.substring(0, cutoff).trimEnd();
+}
+
 function parseOclcNumber(item) {
   return item['oclc_number'];
 }

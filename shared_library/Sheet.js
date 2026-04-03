@@ -9,6 +9,7 @@ const RETENTION = 'EAST Retention';
 const FACULTY_AUTHOR = 'Faculty Author';
 const LEGACY_CIRC_COUNT = 'OLE Circ Count';
 const FOLIO_CIRC_COUNT = 'FOLIO Circ Count';
+const DAMAGE = 'Damage';
 const OCLC_NUMBER = 'OCLC Number';
 const OCLC_HOLDINGS = 'OCLC Holdings';
 const PALCI_HOLDINGS = 'PALCI Holdings';
@@ -40,6 +41,7 @@ const ALL_HEADERS = new Map([
   [FACULTY_AUTHOR,                   INITIAL_LOAD],
   [LEGACY_CIRC_COUNT,                INITIAL_LOAD],
   [FOLIO_CIRC_COUNT,                 INITIAL_LOAD],
+  [DAMAGE,                           INITIAL_LOAD],
   [OCLC_NUMBER,                      INITIAL_LOAD],  // comes from FOLIO/metadb, not OCLC API
   [OCLC_HOLDINGS,                    OCLC_SOURCE],
   [PALCI_HOLDINGS,                   OCLC_SOURCE],
@@ -94,6 +96,7 @@ function writeItemToSheet(sheet, row, item) {
   writeToRow(getColumn(FACULTY_AUTHOR), isFacultyAuthor(item));
   writeToRow(getColumn(LEGACY_CIRC_COUNT), parseLegacyCircCount(item));
   writeToRow(getColumn(FOLIO_CIRC_COUNT), parseFolioCircCount(item));
+  writeToRow(getColumn(DAMAGE), parseDamage(item));
   writeToRow(getColumn(OCLC_NUMBER), item.oclc_number);
   writeToRow(getColumn(OCLC_HOLDINGS), parseOclcHoldings(item));
   writeToRow(getColumn(PALCI_HOLDINGS), parsePalciHoldings(item));
