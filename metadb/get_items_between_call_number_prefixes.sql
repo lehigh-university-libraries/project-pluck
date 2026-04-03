@@ -28,7 +28,8 @@ RETURNS TABLE (
     folio_circ_count BIGINT,
     oclc_number TEXT,
     item_effective_location_name TEXT,
-    holdings_permanent_location_name TEXT
+    holdings_permanent_location_name TEXT,
+    damage_inventory_note TEXT
 )
 AS
 $$
@@ -147,6 +148,15 @@ WITH
         SELECT id, name
         FROM folio_inventory.material_type__t
         WHERE id IN (SELECT material_type_id FROM filtered_range)
+    ),
+    ref_damage AS (
+        SELECT DISTINCT ON (item_ext.item_id) item_ext.item_id, item_notes.note
+        FROM folio_derived.item_ext
+        JOIN folio_derived.item_notes ON item_notes.item_id = item_ext.item_id
+            AND item_notes.note_type_name = 'Inventoried Condition'
+        WHERE item_ext.item_id IN (SELECT item_id FROM filtered_range)
+          AND item_ext.damaged_status_name = 'Damaged'
+        ORDER BY item_ext.item_id
     )
 -- 6. Final Select
 SELECT 
@@ -168,7 +178,8 @@ SELECT
     COALESCE(counted_folio_circ.checkout_count, 0) AS folio_circ_count,
     summarized_oclc.identifiers AS oclc_number,
     loc_eff.name AS item_effective_location_name,
-    loc_perm.name AS holdings_permanent_location_name
+    loc_perm.name AS holdings_permanent_location_name,
+    ref_damage.note AS damage_inventory_note
 FROM filtered_range
 LEFT JOIN folio_inventory.item item_raw ON filtered_range.item_id = item_raw.id
 LEFT JOIN folio_inventory.instance__t inst ON filtered_range.instance_id = inst.id
@@ -181,6 +192,7 @@ LEFT JOIN summarized_oclc ON filtered_range.instance_id = summarized_oclc.instan
 LEFT JOIN ref_locations AS loc_eff ON filtered_range.effective_location_id = loc_eff.id
 LEFT JOIN ref_locations AS loc_perm ON filtered_range.holdings_permanent_location_id = loc_perm.id
 LEFT JOIN ref_material_types ON filtered_range.material_type_id = ref_material_types.id
+LEFT JOIN ref_damage ON filtered_range.item_id = ref_damage.item_id
 ORDER BY COALESCE(filtered_range.local_shelving_order, filtered_range.effective_shelving_order) COLLATE ucs_basic;
 $$
 LANGUAGE SQL;
