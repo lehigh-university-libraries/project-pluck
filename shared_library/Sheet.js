@@ -14,6 +14,7 @@ const DAMAGE = 'Damage';
 const OCLC_NUMBER = 'OCLC Number';
 const OCLC_HOLDINGS = 'OCLC Holdings';
 const PALCI_HOLDINGS = 'PALCI Holdings';
+const LVAIC_HOLDINGS = 'LVAIC Holdings';
 const HATHI_EBOOK = 'Hathi e-book';
 const INSTANCE_UUID = 'Instance UUID';
 const INSTANCE_HRID = 'Instance HRID';
@@ -47,6 +48,7 @@ const ALL_HEADERS = new Map([
   [OCLC_NUMBER,                      INITIAL_LOAD],  // comes from FOLIO/metadb, not OCLC API
   [OCLC_HOLDINGS,                    OCLC_SOURCE],
   [PALCI_HOLDINGS,                   OCLC_SOURCE],
+  [LVAIC_HOLDINGS,                   OCLC_SOURCE],
   [HATHI_EBOOK,                      HATHI_SOURCE],
   [INSTANCE_UUID,                    INITIAL_LOAD],
   [INSTANCE_HRID,                    INITIAL_LOAD],
@@ -103,6 +105,7 @@ function writeItemToSheet(sheet, row, item) {
   writeToRow(getColumn(OCLC_NUMBER), item.oclc_number);
   writeToRow(getColumn(OCLC_HOLDINGS), parseOclcHoldings(item));
   writeToRow(getColumn(PALCI_HOLDINGS), parsePalciHoldings(item));
+  writeToRow(getColumn(LVAIC_HOLDINGS), parseLvaicHoldings(item));
   writeToRow(getColumn(HATHI_EBOOK), parseHathiEbook(item));
   writeToRow(getColumn(INSTANCE_UUID), item.instance_uuid);
   writeToRow(getColumn(INSTANCE_HRID), item.instance_hrid);
@@ -124,8 +127,10 @@ function writeHeaders(sheet) {
   // Text barcode -- allow leading zeroes
   let column = getColumnLetter(BARCODE);
   sheet.getRange(`${column}1:${column}`).setNumberFormat("@");
-  column = getColumnLetter(PALCI_HOLDINGS);
-  if (column) sheet.getRange(`${column}1:${column}`).setHorizontalAlignment("right");
+  for (const countCol of [PALCI_HOLDINGS, LVAIC_HOLDINGS]) {
+    column = getColumnLetter(countCol);
+    if (column) sheet.getRange(`${column}1:${column}`).setHorizontalAlignment("right");
+  }
 }
 
 function getSheetHeaders(sheet) {
