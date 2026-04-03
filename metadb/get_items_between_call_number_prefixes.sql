@@ -125,6 +125,12 @@ WITH
           AND jsonb->'loan'->>'action' = 'checkedout'
         GROUP BY (jsonb->'loan'->>'itemId')::UUID
     ),
+    summarized_statistical_codes AS (
+        SELECT item_id, STRING_AGG(statistical_code, '; ') AS codes
+        FROM folio_derived.item_statistical_codes
+        WHERE item_id IN (SELECT item_id FROM filtered_range)
+        GROUP BY item_id
+    ),
     -- 5. The "One-to-One" data (Lookups/References)
     ref_faculty_status AS (
         SELECT DISTINCT instance_id, TRUE as is_faculty
@@ -167,7 +173,7 @@ SELECT
     jsonb_extract_path_text(item_raw.jsonb, 'effectiveCallNumberComponents', 'callNumber') AS effective_call_number,
     jsonb_extract_path_text(item_raw.jsonb, 'status', 'name') AS item_status,
     ref_material_types.name AS material_type,
-    jsonb_extract_path_text(item_raw.jsonb, 'statisticalCodeIds') AS statistical_codes,
+    summarized_statistical_codes.codes AS statistical_codes,
     inst.title,
     inst.id as instance_uuid,
     inst.hrid as instance_hrid,
@@ -193,6 +199,7 @@ LEFT JOIN ref_locations AS loc_eff ON filtered_range.effective_location_id = loc
 LEFT JOIN ref_locations AS loc_perm ON filtered_range.holdings_permanent_location_id = loc_perm.id
 LEFT JOIN ref_material_types ON filtered_range.material_type_id = ref_material_types.id
 LEFT JOIN ref_damage ON filtered_range.item_id = ref_damage.item_id
+LEFT JOIN summarized_statistical_codes ON filtered_range.item_id = summarized_statistical_codes.item_id
 ORDER BY COALESCE(filtered_range.local_shelving_order, filtered_range.effective_shelving_order) COLLATE ucs_basic;
 $$
 LANGUAGE SQL;
