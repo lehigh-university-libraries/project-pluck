@@ -35,8 +35,8 @@ const SUCCESS_BACKGROUND = 'lightgreen';
 const FAILURE_BACKGROUND = 'lightcoral';
 
 // Retention Statistical Codes
-const RETENTION_IDS = [
-  'ba16cd17-fb83-4a14-ab40-23c7ffa5ccb5',
+const RETENTION_CODES = [
+  'EAST',
 ]
 
 // Decision Note

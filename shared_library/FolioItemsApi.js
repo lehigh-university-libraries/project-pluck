@@ -41,7 +41,9 @@ function normalizeFolioItem(item) {
   item.contributor = item.contributorNames?.[0]?.name;
   item.publication_date = item.instance?.publication?.[0]?.dateOfPublication;
   item.item_status = item.status?.name;
-  item.statistical_codes = JSON.stringify(item.statisticalCodeIds || []);
+  item.statistical_codes = (item.statisticalCodeIds || [])
+    .map(id => STATISTICAL_CODE_BY_ID[id] ?? id)
+    .join('; ');
   item.faculty_author = parseFacultyAuthorFolio(item);
   item.legacy_circ_count = parseLegacyCircCountFolio(item);
   item.folio_circ_count = item.circulations?.totalRecords;

@@ -39,10 +39,13 @@ function loadItemForBarcode(barcode, holdingsRecord, instance, circulations) {
   return item;
 }
 
+let STATISTICAL_CODE_BY_ID;  // id → code name
+
 function initFolio() {
   getOrCreate('authenticate', authenticate, FOLIO_CACHE_TIME);
   LOCATIONS = getOrCreate('loadLocations', loadLocations, FOLIO_CACHE_TIME);
   DECISION_CODE_TO_ID = getOrCreate('loadStatisticalCodes', loadStatisticalCodes, FOLIO_CACHE_TIME);
+  STATISTICAL_CODE_BY_ID = Object.fromEntries(Object.entries(DECISION_CODE_TO_ID).map(([k, v]) => [v, k]));
   DECISION_NOTE_TYPE_ID = getOrCreate('loadDecisionNoteTypeId', loadDecisionNoteTypeId, FOLIO_CACHE_TIME);
   INSTANCE_STATUS_WITHDRAWN_ID = getOrCreate('loadInstanceStatusWithdrawnId', loadInstanceStatusWithdrawnId, FOLIO_CACHE_TIME);
   // logTime('after FOLIO init');
@@ -171,8 +174,8 @@ function hasUnsuppressedRecord(recordList, ignoreRecord) {
 }
 
 function hasRetentionAgreement(item) {
-  const codes = JSON.parse(item.statistical_codes || "[]");
-  return codes.some(code => RETENTION_IDS.includes(code));
+  const codes = (item.statistical_codes || '').split('; ');
+  return codes.some(code => RETENTION_CODES.includes(code));
 }
 
 function isFacultyAuthor(item) {
