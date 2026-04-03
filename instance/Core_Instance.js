@@ -104,6 +104,10 @@ function getActiveSheetState() {
   };
 }
 
+function showAlert(message) {
+  SpreadsheetApp.getUi().alert(message);
+}
+
 function showColumnPreferences() {
   ProjectPluck.showColumnPreferences();
 }

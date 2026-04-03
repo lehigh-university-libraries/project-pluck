@@ -207,7 +207,7 @@
 
         function onFailure(error) {
           console.log("Failed with error: ", error);
-          alert("Failed with error: " + error);
+          google.script.run.showAlert("Failed with error: " + error);
         }
 
         let environment = $("#environment input[type=radio]:checked").val();
@@ -234,7 +234,7 @@
             if (!validation.start_found) missing.push(`start prefix "${start_call_number_prefix}"`);
             if (!validation.end_found) missing.push(`end prefix "${end_call_number_prefix}"`);
             if (missing.length > 0) {
-              alert(`No items found in location "${location_code}" matching ${missing.join(' or ')}. Adjust the call number prefix and try again.`);
+              google.script.run.showAlert(`No items found in location "${location_code}" matching ${missing.join(' or ')}. Adjust the call number prefix and try again.`);
               unlockLoadItems();
               $("#init_sheet").removeAttr("disabled");
               return;
@@ -246,13 +246,13 @@
               })
               .withFailureHandler(function(error) {
                 console.info("init sheet failed.");
-                alert("Failed with error: " + error);
+                google.script.run.showAlert("Failed with error: " + error);
                 $("#init_sheet").removeAttr("disabled");
               })
               .initSheetForLocation(environment, location_id, start_call_number_prefix, end_call_number_prefix);
           })
           .withFailureHandler(function(error) {
-            alert("Preflight check failed: " + error);
+            google.script.run.showAlert("Preflight check failed: " + error);
             $("#init_sheet").removeAttr("disabled");
           })
           .validateCallNumberBoundaries(environment, location_code, start_call_number_prefix, end_call_number_prefix);
@@ -266,7 +266,7 @@
 
         function onFailure(error) {
           console.info("stop loading failed.");
-          alert("Failed with error: " + error);
+          google.script.run.showAlert("Failed with error: " + error);
           $("#stop_loading").removeAttr("disabled");
         }
 
@@ -285,7 +285,7 @@
 
         function onFailure(error) {
           console.info("add decisions failed.");
-          alert("Failed with error: " + error);
+          google.script.run.showAlert("Failed with error: " + error);
           $("#add_decisions").removeAttr("disabled");
         }
 
@@ -304,7 +304,7 @@
 
         function onFailure(error) {
           console.info("process final states failed.");
-          alert("Failed with error: " + error);
+          google.script.run.showAlert("Failed with error: " + error);
           $("#process_final_states").removeAttr("disabled");
         }
 
