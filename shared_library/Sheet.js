@@ -82,6 +82,9 @@ function initWriteToRow() {
 }
 function writeToRow(column, value) {
   if (column === null) return;
+  // Prevent formula injection: Google Sheets interprets strings starting with =, +, -, or @ as formulas.
+  // Prefixing with a single quote forces the cell to be treated as plain text.
+  if (typeof value === 'string' && /^[=+\-@]/.test(value)) value = "'" + value;
   writeBuffer[column - 1] = value;
 }
 function commitWriteToRow(sheet, row) {
