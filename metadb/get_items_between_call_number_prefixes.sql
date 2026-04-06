@@ -142,7 +142,7 @@ WITH
         SELECT item_id, note
         FROM folio_derived.item_notes
         WHERE item_id IN (SELECT item_id FROM filtered_range)
-          AND note_type_id = '8f26b475-d7e3-4577-8bd0-c3d3bf44f73b'
+          AND note_type_name = 'OLE-Circ-Count'
     ),
     ref_locations AS (
         SELECT id, name

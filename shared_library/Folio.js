@@ -40,6 +40,8 @@ function loadItemForBarcode(barcode, holdingsRecord, instance, circulations) {
 }
 
 let STATISTICAL_CODE_BY_ID;  // id → code name
+var LEGACY_CIRC_COUNT_NOTE_TYPE_ID;
+var OCLC_NUMBER_IDENTIFIER_TYPE_ID;
 
 function initFolio() {
   getOrCreate('authenticate', authenticate, FOLIO_CACHE_TIME);
@@ -48,6 +50,8 @@ function initFolio() {
   STATISTICAL_CODE_BY_ID = Object.fromEntries(Object.entries(DECISION_CODE_TO_ID).map(([k, v]) => [v, k]));
   DECISION_NOTE_TYPE_ID = getOrCreate('loadDecisionNoteTypeId', loadDecisionNoteTypeId, FOLIO_CACHE_TIME);
   INSTANCE_STATUS_WITHDRAWN_ID = getOrCreate('loadInstanceStatusWithdrawnId', loadInstanceStatusWithdrawnId, FOLIO_CACHE_TIME);
+  LEGACY_CIRC_COUNT_NOTE_TYPE_ID = getOrCreate('loadLegacyCircNoteTypeId', loadLegacyCircNoteTypeId, FOLIO_CACHE_TIME);
+  OCLC_NUMBER_IDENTIFIER_TYPE_ID = getOrCreate('loadOclcIdentifierTypeId', loadOclcIdentifierTypeId, FOLIO_CACHE_TIME);
   // logTime('after FOLIO init');
 }
 
@@ -95,6 +99,16 @@ function loadInstanceStatusWithdrawnId() {
   const instanceStatuses = queryFolioGet(url)['instanceStatuses'];
   const instanceStatus = instanceStatuses[0];
   return instanceStatus.id;
+}
+
+function loadLegacyCircNoteTypeId() {
+  const url = `/item-note-types?limit=1000&query=${encodeURIComponent(`name=="${LEGACY_CIRC_COUNT_NOTE_TYPE_NAME}"`)}`;
+  return queryFolioGet(url)['itemNoteTypes'][0].id;
+}
+
+function loadOclcIdentifierTypeId() {
+  const url = `/identifier-types?limit=1000&query=${encodeURIComponent(`name=="${OCLC_NUMBER_IDENTIFIER_TYPE_NAME}"`)}`;
+  return queryFolioGet(url)['identifierTypes'][0].id;
 }
 
 function validateCallNumberBoundaries(locationCode, startPrefix, endPrefix) {

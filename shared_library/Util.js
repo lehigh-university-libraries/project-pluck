@@ -30,6 +30,8 @@ function clearCache() {
     'loadStatisticalCodes', 
     'loadDecisionNoteTypeId', 
     'loadInstanceStatusWithdrawnId',
+    'loadLegacyCircNoteTypeId',
+    'loadOclcIdentifierTypeId',
   ]);
 }
 

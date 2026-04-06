@@ -53,8 +53,8 @@ const MISSING_CHECK_IN_NOTE_TYPE = 'Check in';
 const MISSING_CHECK_IN_NOTE_TEXT = 'Withdrawn.  Route to Cataloging.';
 
 const FACULTY_AUTHOR_NOTE_TEXT = "Lehigh Faculty Author Publication";
-const LEGACY_CIRC_COUNT_NOTE_TYPE_ID = '8f26b475-d7e3-4577-8bd0-c3d3bf44f73b';
-const OCLC_NUMBER_IDENTIFIER_TYPE_ID = '439bfbae-75bc-4f74-9fc7-b2a2d47ce3ef';
+const LEGACY_CIRC_COUNT_NOTE_TYPE_NAME = 'OLE-Circ-Count';
+const OCLC_NUMBER_IDENTIFIER_TYPE_NAME = 'OCLC';
 
 const INSTANCE_STATUS_WITHDRAWN_CODE = 'Withdrawn';
 
