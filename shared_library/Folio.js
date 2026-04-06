@@ -210,13 +210,26 @@ function parseLocation(locationId) {
   return LOCATIONS[locationId]?.['name'];
 }
 
+function reauthenticate() {
+  console.log('Re-authenticating with FOLIO.');
+  CacheService.getScriptCache().remove('authenticate');
+  authenticate();
+}
+
 function queryFolioGet(url) {
   // execute query
   const environment = properties.getProperty("environment");
   const query = FOLIOAUTHLIBRARY.getBaseOkapi(environment) + url;
   console.log('Executing GET query: ', query);
-  const getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
-  const response = UrlFetchApp.fetch(query, getOptions);
+  let getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
+  let response = UrlFetchApp.fetch(query, getOptions);
+
+  // retry once on 401
+  if (response.getResponseCode() === 401) {
+    reauthenticate();
+    getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
+    response = UrlFetchApp.fetch(query, getOptions);
+  }
 
   // parse response
   const responseText = response.getContentText();
@@ -236,15 +249,21 @@ function queryFolioPost(url, payload) {
   const query = FOLIOAUTHLIBRARY.getBaseOkapi(environment) + url;
   const payloadString = JSON.stringify(payload);
   console.log(`Executing POST query with url ${url} and payload ${payloadString}`);
-  const headers = FOLIOAUTHLIBRARY.getHttpPostHeaders();
-  const options = {
+  const buildOptions = () => ({
     'method': 'post',
     'contentType': 'application/json',
-    'headers': headers,
+    'headers': FOLIOAUTHLIBRARY.getHttpPostHeaders(),
     'payload': payloadString,
     'muteHttpExceptions': true,
-  };
-  const response = UrlFetchApp.fetch(query, options);
+  });
+  let response = UrlFetchApp.fetch(query, buildOptions());
+
+  // retry once on 401
+  if (response.getResponseCode() === 401) {
+    reauthenticate();
+    response = UrlFetchApp.fetch(query, buildOptions());
+  }
+
   const responseText = response.getContentText();
   if (response.getResponseCode() < 200 || response.getResponseCode() >= 400) {
     console.error(`Error response: ${response.getResponseCode()}, ${responseText}`);
