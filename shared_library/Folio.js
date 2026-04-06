@@ -99,7 +99,7 @@ function loadInstanceStatusWithdrawnId() {
 
 function validateCallNumberBoundaries(locationCode, startPrefix, endPrefix) {
   const payload = {
-    'url': 'https://raw.githubusercontent.com/lehigh-university-libraries/project-pluck/refs/heads/social-sciences/metadb/validate_call_number_boundaries.sql',
+    'url': properties.getProperty('metadbUrlValidateBoundaries'),
     'params': {
       'location_code': locationCode,
       'start_call_number_prefix': startPrefix,
@@ -113,7 +113,7 @@ function validateCallNumberBoundaries(locationCode, startPrefix, endPrefix) {
 
 function loadItemsMetadb(locationCode, startCallNumberPrefix, endCallNumberPrefix, offset, count) {
   const payload = {
-    'url': 'https://raw.githubusercontent.com/lehigh-university-libraries/project-pluck/refs/heads/social-sciences/metadb/get_items_between_call_number_prefixes.sql',
+    'url': properties.getProperty('metadbUrlLoadItems'),
     'params': {
       'location_code': locationCode,
       'start_call_number_prefix': startCallNumberPrefix,
