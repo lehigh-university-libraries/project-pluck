@@ -28,6 +28,8 @@ const DECISION_TO_FINAL_STATE = new Map([
   [NO_CHANGE, FINAL_STATE_KEEP],
 ]);
 
+const MAX_ADDENDUM_LENGTH = 500;
+
 // status columns
 const ADD_SUCCESS_MESSAGE = 'Added Note';
 const FINAL_STATE_SUCCESS_MESSAGE = 'Final State Processed';
@@ -313,7 +315,9 @@ function addDecision(row) {
 
   const decision = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION)).getValue();
   const now = new Date().toString();
-  const decisionAddendum = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION_ADDENDUM)).getValue();
+  const decisionAddendum = String(
+    SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION_ADDENDUM)).getValue() || ''
+  ).substring(0, MAX_ADDENDUM_LENGTH);
   let decisionNote = `${decision} : ${now}`;
   if (decisionAddendum) {
     decisionNote += `: ${decisionAddendum}`;
