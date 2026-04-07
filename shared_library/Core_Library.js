@@ -244,11 +244,14 @@ function tryLoadMoreItems(sheet) {
       return;
     }
     if (loadHathi) enrichBatchFromHathi(batch);
-    for (const item of batch) {
+    const batchStartRow = row + 1;
+    const existingDecisions = loadExistingDecisions(sheet, batchStartRow, batch.length);
+    for (let i = 0; i < batch.length; i++) {
+      const item = batch[i];
       row++;
       writeItemToSheet(sheet, row, item);
       initDecision(sheet, row);
-      applyAutoDecisions(sheet, row, item);
+      applyAutoDecisions(sheet, row, item, existingDecisions[i]);
       if (row % FLUSH_RATE == 0) {
         SpreadsheetApp.flush();
       }

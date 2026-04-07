@@ -31,12 +31,17 @@ function getAutoDecisionRules() {
   return AUTO_DECISION_RULES;
 }
 
-function applyAutoDecisions(sheet, row, item) {
+function loadExistingDecisions(sheet, startRow, count) {
+  const decisionCol = getColumn(DECISION);
+  if (!decisionCol) return new Array(count).fill('');
+  return sheet.getRange(startRow, decisionCol, count, 1).getValues().map(r => r[0]);
+}
+
+function applyAutoDecisions(sheet, row, item, existingDecision) {
   const decisionCol = getColumn(DECISION);
   if (!decisionCol) return;
 
-  const existing = sheet.getRange(row, decisionCol).getValue();
-  if (existing) return;
+  if (existingDecision) return;
 
   const prefs = getAutoDecisionPreferences();
   for (const rule of getAutoDecisionRules()) {
