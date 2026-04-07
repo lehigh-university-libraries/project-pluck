@@ -120,7 +120,9 @@
 
     <script>
       $(function() {
+        let loadingMode;
         function onSuccess(data) {
+          loadingMode = data.loadingMode;
           if (data.loadingMode === 'folio') {
             $('#start_call_number_prefix').closest('.form-group').hide();
             $('#end_call_number_prefix').closest('.form-group').hide();
@@ -225,8 +227,14 @@
         let location_id = $("#location option:checked").val();
         let location_code = $("#location option:checked").text().trim();
         let start_call_number_prefix = $("#start_call_number_prefix").val();
-        let end_call_number_prefix = $("#end_call_number_prefix").val();
-        console.log("location_id: " + location_id);
+        let end_call_number_prefix = $("#end_call_number_prefix").val() || start_call_number_prefix;
+
+        if (loadingMode === 'metadb' && !start_call_number_prefix) {
+          google.script.run.showAlert("Please enter a start call number prefix.");
+          unlockLoadItems();
+          $("#init_sheet").removeAttr("disabled");
+          return;
+        }
 
         google.script.run
           .withSuccessHandler(function(validation) {
