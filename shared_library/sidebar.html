@@ -119,8 +119,9 @@
 
 
     <script>
+      let loadingMode;
+
       $(function() {
-        let loadingMode;
         function onSuccess(data) {
           loadingMode = data.loadingMode;
           if (data.loadingMode === 'folio') {
@@ -236,34 +237,42 @@
           return;
         }
 
-        google.script.run
-          .withSuccessHandler(function(validation) {
-            const missing = [];
-            if (!validation.start_found) missing.push(`start prefix "${start_call_number_prefix}"`);
-            if (!validation.end_found) missing.push(`end prefix "${end_call_number_prefix}"`);
-            if (missing.length > 0) {
-              google.script.run.showAlert(`No items found in location "${location_code}" matching ${missing.join(' or ')}. Adjust the call number prefix and try again.`);
-              unlockLoadItems();
+        function doInitSheet() {
+          google.script.run
+            .withSuccessHandler(function() {
+              console.info("init sheet succeeded.");
               $("#init_sheet").removeAttr("disabled");
-              return;
-            }
-            google.script.run
-              .withSuccessHandler(function() {
-                console.info("init sheet succeeded.");
+            })
+            .withFailureHandler(function(error) {
+              console.info("init sheet failed.");
+              google.script.run.showAlert("Failed with error: " + error);
+              $("#init_sheet").removeAttr("disabled");
+            })
+            .initSheetForLocation(environment, location_id, start_call_number_prefix, end_call_number_prefix);
+        }
+
+        if (loadingMode === 'folio') {
+          doInitSheet();
+        } else {
+          google.script.run
+            .withSuccessHandler(function(validation) {
+              const missing = [];
+              if (!validation.start_found) missing.push(`start prefix "${start_call_number_prefix}"`);
+              if (!validation.end_found) missing.push(`end prefix "${end_call_number_prefix}"`);
+              if (missing.length > 0) {
+                google.script.run.showAlert(`No items found in location "${location_code}" matching ${missing.join(' or ')}. Adjust the call number prefix and try again.`);
+                unlockLoadItems();
                 $("#init_sheet").removeAttr("disabled");
-              })
-              .withFailureHandler(function(error) {
-                console.info("init sheet failed.");
-                google.script.run.showAlert("Failed with error: " + error);
-                $("#init_sheet").removeAttr("disabled");
-              })
-              .initSheetForLocation(environment, location_id, start_call_number_prefix, end_call_number_prefix);
-          })
-          .withFailureHandler(function(error) {
-            google.script.run.showAlert("Preflight check failed: " + error);
-            $("#init_sheet").removeAttr("disabled");
-          })
-          .validateCallNumberBoundaries(environment, location_code, start_call_number_prefix, end_call_number_prefix);
+                return;
+              }
+              doInitSheet();
+            })
+            .withFailureHandler(function(error) {
+              google.script.run.showAlert("Preflight check failed: " + error);
+              $("#init_sheet").removeAttr("disabled");
+            })
+            .validateCallNumberBoundaries(environment, location_code, start_call_number_prefix, end_call_number_prefix);
+        }
       }
 
       function stopLoading() {
