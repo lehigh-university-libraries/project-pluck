@@ -177,6 +177,7 @@ function tryLoadMoreItems(sheet) {
     return;
   }
 
+  console.log(`UptimeRobot monitoring ${isMonitoringEnabled() ? 'enabled' : 'disabled'}.`);
   startMonitoring();
 
   headers = getSheetHeaders(sheet);
