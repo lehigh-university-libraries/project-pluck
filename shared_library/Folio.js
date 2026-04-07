@@ -33,7 +33,7 @@ function loadItemForBarcode(barcode, holdingsRecord, instance, circulations) {
     console.error("No item matching barcode: " + barcode);
     return null;
   }
-  if (getLoadingMode() === 'folio') {
+  if (holdingsRecord || instance || circulations) {
     enrichItem(item, holdingsRecord, instance, circulations);
   }
   return item;
