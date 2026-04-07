@@ -9,6 +9,7 @@
              letter-spacing: 0.05em; margin-bottom: 4px; }
     label { display: block; padding: 2px 0; cursor: pointer; }
     label.locked { color: #999; cursor: default; }
+    label.unavailable { color: #bbb; cursor: default; font-style: italic; }
     .buttons { margin-top: 16px; display: flex; gap: 8px; }
     button { padding: 6px 16px; font-size: 13px; cursor: pointer; }
     #save { background: #1a73e8; color: white; border: none; border-radius: 4px; }
@@ -57,11 +58,12 @@
         for (const col of cols) {
           const lbl = document.createElement('label');
           if (col.locked) lbl.className = 'locked';
+          else if (col.unavailable) lbl.className = 'unavailable';
           const cb = document.createElement('input');
           cb.type = 'checkbox';
           cb.name = col.name;
-          cb.checked = col.enabled;
-          cb.disabled = col.locked;
+          cb.checked = col.enabled && !col.unavailable;
+          cb.disabled = col.locked || col.unavailable;
           lbl.appendChild(cb);
           lbl.append(' ' + col.name);
           fieldset.appendChild(lbl);
@@ -75,6 +77,8 @@
       for (const col of columnData) {
         if (col.locked) {
           prefs[col.name] = true;
+        } else if (col.unavailable) {
+          prefs[col.name] = false;
         } else {
           const cb = document.querySelector(`input[name="${CSS.escape(col.name)}"]`);
           prefs[col.name] = cb ? cb.checked : true;

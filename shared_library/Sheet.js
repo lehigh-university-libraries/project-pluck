@@ -10,6 +10,7 @@ const INVENTORIED = 'Inventoried';
 const FACULTY_AUTHOR = 'Faculty Author';
 const LEGACY_CIRC_COUNT = 'OLE Circ Count';
 const FOLIO_CIRC_COUNT = 'FOLIO Circ Count';
+const ELECTRONIC_HOLDINGS = 'E-Holdings';
 const DAMAGE = 'Damage';
 const OCLC_NUMBER = 'OCLC Number';
 const OCLC_HOLDINGS = 'OCLC Holdings';
@@ -44,6 +45,7 @@ const ALL_HEADERS = new Map([
   [FACULTY_AUTHOR,                   INITIAL_LOAD],
   [LEGACY_CIRC_COUNT,                INITIAL_LOAD],
   [FOLIO_CIRC_COUNT,                 INITIAL_LOAD],
+  [ELECTRONIC_HOLDINGS,              INITIAL_LOAD],
   [DAMAGE,                           INITIAL_LOAD],
   [OCLC_NUMBER,                      INITIAL_LOAD],  // comes from FOLIO/metadb, not OCLC API
   [OCLC_HOLDINGS,                    OCLC_SOURCE],
@@ -62,6 +64,7 @@ const ALL_HEADERS = new Map([
 ]);
 
 const LOCKED_COLUMNS = [BARCODE, EFFECTIVE_CALL_NUMBER, DECISION, DECISION_ADDENDUM, ADD_DECISION_STATUS, PROCESS_FINAL_STATE_STATUS];
+const METADB_ONLY_COLUMNS = [ELECTRONIC_HOLDINGS];
 
 // Active headers for the current operation — set from sheet metadata at the start of each operation
 let headers = [...ALL_HEADERS.keys()];
@@ -104,6 +107,7 @@ function writeItemToSheet(sheet, row, item) {
   writeToRow(getColumn(FACULTY_AUTHOR), isFacultyAuthor(item));
   writeToRow(getColumn(LEGACY_CIRC_COUNT), parseLegacyCircCount(item));
   writeToRow(getColumn(FOLIO_CIRC_COUNT), parseFolioCircCount(item));
+  writeToRow(getColumn(ELECTRONIC_HOLDINGS), item['electronic_holdings']);
   writeToRow(getColumn(DAMAGE), parseDamage(item));
   writeToRow(getColumn(OCLC_NUMBER), item.oclc_number);
   writeToRow(getColumn(OCLC_HOLDINGS), parseOclcHoldings(item));
@@ -153,15 +157,20 @@ function saveColumnPreferences(prefs) {
 
 function getActiveHeaders() {
   const prefs = getColumnPreferences();
-  return [...ALL_HEADERS.keys()].filter(h => prefs[h] !== false);
+  const isFolioMode = getLoadingMode() === 'folio';
+  return [...ALL_HEADERS.keys()].filter(h =>
+    prefs[h] !== false && !(isFolioMode && METADB_ONLY_COLUMNS.includes(h))
+  );
 }
 
 function getColumnPreferencesData() {
   const prefs = getColumnPreferences();
+  const isFolioMode = getLoadingMode() === 'folio';
   return [...ALL_HEADERS.entries()].map(([name, source]) => ({
     name,
     source,
     locked: LOCKED_COLUMNS.includes(name),
+    unavailable: isFolioMode && METADB_ONLY_COLUMNS.includes(name),
     enabled: prefs[name] !== false,
   }));
 }
