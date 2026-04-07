@@ -30,7 +30,7 @@ RETURNS TABLE (
     item_effective_location_name TEXT,
     holdings_permanent_location_name TEXT,
     damage_inventory_note TEXT,
-    electronic_holdings INTEGER
+    electronic_holdings TEXT
 )
 AS
 $$
@@ -165,16 +165,29 @@ WITH
           AND item_ext.damaged_status_name = 'Damaged'
         ORDER BY item_ext.item_id
     ),
-    counted_electronic_holdings AS (
-        SELECT holdings_notes.note AS instance_hrid, COUNT(holdings_notes.holding_id) AS holding_count
-        FROM folio_derived.holdings_notes holdings_notes
-        WHERE holdings_notes.note_type_name = 'Print version (I-HRID)'
-          AND holdings_notes.note IN (
+    electronic_holdings_data AS (
+        SELECT
+            hn_print.note AS instance_hrid,
+            json_agg(json_build_object(
+                'holdings_hrid', holdings.hrid,
+                'access_method', hn_access.note,
+                'provider', hn_provider.note
+            ))::TEXT AS holdings_data
+        FROM folio_derived.holdings_notes hn_print
+        LEFT JOIN folio_inventory.holdings_record__t holdings ON holdings.id = hn_print.holding_id
+        LEFT JOIN folio_derived.holdings_notes hn_access
+            ON hn_access.holding_id = hn_print.holding_id
+            AND hn_access.note_type_name = 'Ebook access method'
+        LEFT JOIN folio_derived.holdings_notes hn_provider
+            ON hn_provider.holding_id = hn_print.holding_id
+            AND hn_provider.note_type_name = 'Ebook provider'
+        WHERE hn_print.note_type_name = 'Print version (I-HRID)'
+          AND hn_print.note IN (
               SELECT inst2.hrid
               FROM folio_inventory.instance__t inst2
               WHERE inst2.id IN (SELECT instance_id FROM filtered_range)
           )
-        GROUP BY holdings_notes.note
+        GROUP BY hn_print.note
     )
 -- 6. Final Select
 SELECT 
@@ -198,7 +211,7 @@ SELECT
     loc_eff.name AS item_effective_location_name,
     loc_perm.name AS holdings_permanent_location_name,
     ref_damage.note AS damage_inventory_note,
-    COALESCE(counted_electronic_holdings.holding_count, 0) AS electronic_holdings
+    electronic_holdings_data.holdings_data AS electronic_holdings
 FROM filtered_range
 LEFT JOIN folio_inventory.item item_raw ON filtered_range.item_id = item_raw.id
 LEFT JOIN folio_inventory.instance__t inst ON filtered_range.instance_id = inst.id
@@ -213,7 +226,7 @@ LEFT JOIN ref_locations AS loc_perm ON filtered_range.holdings_permanent_locatio
 LEFT JOIN ref_material_types ON filtered_range.material_type_id = ref_material_types.id
 LEFT JOIN ref_damage ON filtered_range.item_id = ref_damage.item_id
 LEFT JOIN summarized_statistical_codes ON filtered_range.item_id = summarized_statistical_codes.item_id
-LEFT JOIN counted_electronic_holdings ON inst.hrid = counted_electronic_holdings.instance_hrid
+LEFT JOIN electronic_holdings_data ON inst.hrid = electronic_holdings_data.instance_hrid
 ORDER BY COALESCE(filtered_range.local_shelving_order, filtered_range.effective_shelving_order) COLLATE ucs_basic;
 $$
 LANGUAGE SQL;
