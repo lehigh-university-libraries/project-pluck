@@ -209,6 +209,15 @@ function parseFolioCircCount(item) {
   return item.folio_circ_count;
 }
 
+function parseElectronicHoldings(item) {
+  const raw = item['electronic_holdings'];
+  if (!raw) return '';
+  const holdings = JSON.parse(raw);
+  return holdings
+    .map(h => [h['access_method'], h['provider']].filter(Boolean).join(' - '))
+    .join(', ');
+}
+
 function parseDamage(item) {
   const note = item['damage_inventory_note'];
   if (!note) return null;

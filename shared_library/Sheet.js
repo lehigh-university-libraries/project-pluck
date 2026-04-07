@@ -107,7 +107,7 @@ function writeItemToSheet(sheet, row, item) {
   writeToRow(getColumn(FACULTY_AUTHOR), isFacultyAuthor(item));
   writeToRow(getColumn(LEGACY_CIRC_COUNT), parseLegacyCircCount(item));
   writeToRow(getColumn(FOLIO_CIRC_COUNT), parseFolioCircCount(item));
-  writeToRow(getColumn(ELECTRONIC_HOLDINGS), item['electronic_holdings']);
+  writeToRow(getColumn(ELECTRONIC_HOLDINGS), parseElectronicHoldings(item));
   writeToRow(getColumn(DAMAGE), parseDamage(item));
   writeToRow(getColumn(OCLC_NUMBER), item.oclc_number);
   writeToRow(getColumn(OCLC_HOLDINGS), parseOclcHoldings(item));
