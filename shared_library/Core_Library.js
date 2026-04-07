@@ -306,6 +306,8 @@ function processSelectedRows(callback) {
     const start = range.getRow();
     const end = range.getLastRow();
     for (let row = start; row <= end; row ++) {
+      const decision = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION)).getValue();
+      if (!decision) continue;
       callback(row);
     }
   }
