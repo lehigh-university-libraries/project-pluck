@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 13px; margin: 12px; }
+    h1 { margin: 0 0 12px; font-size: 14px; }
+    table { border-collapse: collapse; width: 100%; }
+    th { text-align: left; font-weight: bold; color: #555; font-size: 11px;
+         text-transform: uppercase; letter-spacing: 0.05em; padding: 0 8px 6px 0; }
+    td { padding: 4px 8px 4px 0; vertical-align: middle; }
+    td:first-child { width: 24px; }
+    input[type="number"] { width: 56px; font-size: 13px; padding: 2px 4px; }
+    select { font-size: 13px; padding: 2px 4px; }
+    .param-label { color: #555; font-size: 12px; margin-right: 4px; }
+    .buttons { margin-top: 16px; display: flex; gap: 8px; }
+    button { padding: 6px 16px; font-size: 13px; cursor: pointer; }
+    #save { background: #1a73e8; color: white; border: none; border-radius: 4px; }
+    #save:disabled { background: #aaa; cursor: default; }
+    #cancel { background: white; border: 1px solid #ccc; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Auto-decision rules</h1>
+  <span id="col-decision-desc" style="display:none">Decision</span>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col" aria-label="Enabled"></th>
+        <th scope="col">Rule</th>
+        <th scope="col">Decision</th>
+        <th scope="col">Parameters</th>
+      </tr>
+    </thead>
+    <tbody id="rules"></tbody>
+  </table>
+  <div class="buttons">
+    <button id="save" disabled onclick="save()">Save</button>
+    <button id="cancel" onclick="google.script.host.close()">Cancel</button>
+  </div>
+
+  <script>
+    let rulesData = [];
+
+    google.script.run
+      .withSuccessHandler(function(data) {
+        rulesData = data.rules;
+        render(data.rules, data.decisions);
+        document.getElementById('save').disabled = false;
+      })
+      .withFailureHandler(function(err) {
+        document.getElementById('rules').innerHTML =
+          `<tr><td colspan="4" style="color:red">Failed to load rules: ${err.message}</td></tr>`;
+      })
+      .getAutoDecisionRulesData();
+
+    function render(rules, decisions) {
+      const tbody = document.getElementById('rules');
+      for (const rule of rules) {
+        const tr = document.createElement('tr');
+        const safeId = rule.name.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+
+        // Enabled checkbox — label wraps the rule name cell so clicking the name toggles it
+        const tdCb = document.createElement('td');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.id = `enabled-${safeId}`;
+        cb.dataset.rule = rule.name;
+        cb.dataset.field = 'enabled';
+        cb.checked = rule.enabled;
+        cb.setAttribute('aria-label', `Enable rule: ${rule.name}`);
+        tdCb.appendChild(cb);
+        tr.appendChild(tdCb);
+
+        // Rule name — label activates the checkbox; td gets an id to label the select
+        const tdName = document.createElement('td');
+        tdName.id = `name-${safeId}`;
+        const nameLbl = document.createElement('label');
+        nameLbl.htmlFor = cb.id;
+        nameLbl.textContent = rule.name;
+        tdName.appendChild(nameLbl);
+        tr.appendChild(tdName);
+
+        // Decision dropdown — labelled by the rule name cell, described as "Decision"
+        const tdDecision = document.createElement('td');
+        const sel = document.createElement('select');
+        sel.setAttribute('aria-labelledby', `name-${safeId}`);
+        sel.setAttribute('aria-describedby', 'col-decision-desc');
+        sel.dataset.rule = rule.name;
+        sel.dataset.field = 'decision';
+        for (const d of decisions) {
+          const opt = document.createElement('option');
+          opt.value = d;
+          opt.textContent = d;
+          if (d === rule.decision) opt.selected = true;
+          sel.appendChild(opt);
+        }
+        tdDecision.appendChild(sel);
+        tr.appendChild(tdDecision);
+
+        // Parameter inputs with proper <label> elements
+        const tdParams = document.createElement('td');
+        for (const [key, val] of Object.entries(rule.params)) {
+          const inpId = `param-${safeId}-${key}`;
+          const lbl = document.createElement('label');
+          lbl.htmlFor = inpId;
+          lbl.className = 'param-label';
+          lbl.textContent = key + ':';
+          const inp = document.createElement('input');
+          inp.type = 'number';
+          inp.id = inpId;
+          inp.value = val;
+          inp.min = 0;
+          inp.dataset.rule = rule.name;
+          inp.dataset.field = 'param';
+          inp.dataset.param = key;
+          tdParams.appendChild(lbl);
+          tdParams.appendChild(inp);
+        }
+        tr.appendChild(tdParams);
+
+        tbody.appendChild(tr);
+      }
+    }
+
+    function save() {
+      const prefs = {};
+      for (const rule of rulesData) {
+        const cb = document.querySelector(`input[type="checkbox"][data-rule="${CSS.escape(rule.name)}"]`);
+        const sel = document.querySelector(`select[data-rule="${CSS.escape(rule.name)}"]`);
+        const paramInputs = document.querySelectorAll(`input[type="number"][data-rule="${CSS.escape(rule.name)}"]`);
+        const params = {};
+        for (const inp of paramInputs) {
+          params[inp.dataset.param] = Number(inp.value);
+        }
+        prefs[rule.name] = {
+          enabled: cb ? cb.checked : false,
+          decision: sel ? sel.value : rule.decision,
+          params,
+        };
+      }
+      document.getElementById('save').disabled = true;
+      google.script.run
+        .withSuccessHandler(function() { google.script.host.close(); })
+        .saveAutoDecisionPreferences(prefs);
+    }
+  </script>
+</body>
+</html>

@@ -182,6 +182,13 @@ function showColumnPreferences() {
   SpreadsheetApp.getUi().showModalDialog(html, 'Select columns to load on new tabs');
 }
 
+function showAutoDecisionRules() {
+  const html = HtmlService.createHtmlOutputFromFile('autoDecisionRules')
+    .setWidth(640)
+    .setHeight(360);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Auto-decision rules');
+}
+
 function writeTabName(sheet, locationId, startCallNumberPrefix, endCallNumberPrefix) {
   const code = LOCATIONS[locationId]?.['code'];
   const name = (getLoadingMode() === 'metadb')

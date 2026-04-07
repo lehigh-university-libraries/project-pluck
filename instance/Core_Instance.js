@@ -122,6 +122,20 @@ function saveColumnPreferences(prefs) {
   ProjectPluck.saveColumnPreferences(prefs);
 }
 
+function showAutoDecisionRules() {
+  ProjectPluck.showAutoDecisionRules();
+}
+
+function getAutoDecisionRulesData() {
+  initProperties();
+  return ProjectPluck.getAutoDecisionRulesData();
+}
+
+function saveAutoDecisionPreferences(prefs) {
+  initProperties();
+  ProjectPluck.saveAutoDecisionPreferences(prefs);
+}
+
 function checkProperties() {
   getLoadingMode();
 }

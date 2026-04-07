@@ -14,7 +14,7 @@ const SC = 'move to special collections';
 const MISSING = 'missing';
 const NO_CHANGE = 'no change';
 const DECISIONS = [ WITHDRAW, REMOTE, SC, MISSING, NO_CHANGE] ;
-const DECISIONS_RULE = SpreadsheetApp.newDataValidation().requireValueInList(DECISIONS).build();
+const DECISIONS_VALIDATION = SpreadsheetApp.newDataValidation().requireValueInList(DECISIONS).build();
 
 // Final States
 const FINAL_STATE_KEEP = 'decision-keep-2024';
@@ -104,6 +104,7 @@ function onOpen() {
     .addItem('Show Sidebar', 'showSidebar')
     .addSeparator()
     .addItem('Select columns', 'showColumnPreferences')
+    .addItem('Configure auto-decision rules', 'showAutoDecisionRules')
     .addItem('Reload FOLIO metadata', 'reloadFolioMetadata')
     .addItem('Show developer info', 'showDeveloperInfo')
     .addToUi();
@@ -247,6 +248,7 @@ function tryLoadMoreItems(sheet) {
       row++;
       writeItemToSheet(sheet, row, item);
       initDecision(sheet, row);
+      applyAutoDecisions(sheet, row, item);
       if (row % FLUSH_RATE == 0) {
         SpreadsheetApp.flush();
       }
@@ -282,7 +284,7 @@ function stopLoading() {
 
 
 function initDecision(sheet, row) {
-  sheet.getRange(row, getColumn(DECISION)).setDataValidation(DECISIONS_RULE);
+  sheet.getRange(row, getColumn(DECISION)).setDataValidation(DECISIONS_VALIDATION);
 }
 
 function addDecisions() {
