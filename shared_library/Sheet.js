@@ -112,8 +112,8 @@ function writeItemToSheet(sheet, row, item) {
   writeToRow(getColumn(DAMAGE), parseDamage(item));
   writeToRow(getColumn(OCLC_NUMBER), item.oclc_number);
   writeToRow(getColumn(OCLC_HOLDINGS), parseOclcHoldings(item));
-  writeToRow(getColumn(PALCI_HOLDINGS), parsePalciHoldings(item));
-  writeToRow(getColumn(LVAIC_HOLDINGS), parseLvaicHoldings(item));
+  writeToRow(getColumn(PALCI_HOLDINGS), parseHoldingsForConsortium(item, 'PALCI'));
+  writeToRow(getColumn(LVAIC_HOLDINGS), parseHoldingsForConsortium(item, 'LVAIC'));
   writeToRow(getColumn(HATHI_EBOOK), parseHathiEbook(item));
   writeToRow(getColumn(INSTANCE_UUID), item.instance_uuid);
   writeToRow(getColumn(INSTANCE_HRID), item.instance_hrid);

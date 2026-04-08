@@ -38,12 +38,13 @@ const INVENTORIED_CODES = [
 ];
 
 // OCLC consortium symbols
-// List the OCLC symbols for each consortium your institution belongs to.
+// Map each consortium name to its list of OCLC member symbols.
 // Used to approximate consortium holding counts from the WorldCat API.
-// Used only if the PALCI Holdings column is enabled.
-const PALCI_OCLC_SYMBOLS = ['AVL','BEA','BMC','PBU','PBE','CRC','PMC','HHC','PBB','LQS','MAN','XR4','ALL','DKC','DRU','DXU','DUQ','ETS','EAS','ELZ','LFM','PGU','GDC','GBL','HUSAT','HVC','HFC','PZI','PJU','KOL','KZS','LRC','LAS','LAF','VFL','LVC','LYU','LYC','WHV','MRW','QRA','PGM','MVS','CMZ','NJM','MOR','EVI','ZMU','ZYU','UPM','CSC','REC','EIB','PHU','PMN','PTP','ROB','NJG','NJR','PSF','SJD','STH','SQP','SRS','PHA','SUS','PSC','TEU','PCT','PAU','PIT','SRU','URS','PVU','PUG','QWC','WVX','WVU','WFN','UWC','YCP'];
-// Used only if the LVAIC Holdings column is enabled.
-const LVAIC_OCLC_SYMBOLS = ['CC#', 'LAF', 'LYU', 'MOR', 'EVI', 'ALL'];
+// Each entry is used only if the corresponding Holdings column is enabled.
+const CONSORTIUM_OCLC_SYMBOLS = new Map([
+  ['PALCI', ['AVL','BEA','BMC','PBU','PBE','CRC','PMC','HHC','PBB','LQS','MAN','XR4','ALL','DKC','DRU','DXU','DUQ','ETS','EAS','ELZ','LFM','PGU','GDC','GBL','HUSAT','HVC','HFC','PZI','PJU','KOL','KZS','LRC','LAS','LAF','VFL','LVC','LYU','LYC','WHV','MRW','QRA','PGM','MVS','CMZ','NJM','MOR','EVI','ZMU','ZYU','UPM','CSC','REC','EIB','PHU','PMN','PTP','ROB','NJG','NJR','PSF','SJD','STH','SQP','SRS','PHA','SUS','PSC','TEU','PCT','PAU','PIT','SRU','URS','PVU','PUG','QWC','WVX','WVU','WFN','UWC','YCP']],
+  ['LVAIC', ['CC#', 'LAF', 'LYU', 'MOR', 'EVI', 'ALL']],
+]);
 
 // Decisions
 // The list of possible retention decisions shown in the spreadsheet drop-down.

@@ -2,8 +2,9 @@ TOKEN_URL = 'https://oauth.oclc.org/token';
 WORLDCATSEARCH_BASE_URL = 'https://americas.discovery.api.oclc.org/worldcat/search/v2';
 WORLDCATSEARCH_SCOPES = 'wcapi';
 
-const PALCI_OCLC_SYMBOLS_SET = new Set(PALCI_OCLC_SYMBOLS);
-const LVAIC_OCLC_SYMBOLS_SET = new Set(LVAIC_OCLC_SYMBOLS);
+const CONSORTIUM_OCLC_SYMBOLS_SETS = new Map(
+  [...CONSORTIUM_OCLC_SYMBOLS.entries()].map(([name, symbols]) => [name, new Set(symbols)])
+);
 
 function initOclc() {
   const id = properties.getProperty('oclcId');
@@ -78,11 +79,7 @@ function parseConsortiumHoldings(item, name, symbolsSet) {
   return symbols.filter(s => symbolsSet.has(s)).length + '+';
 }
 
-function parsePalciHoldings(item) {
-  return parseConsortiumHoldings(item, 'PALCI', PALCI_OCLC_SYMBOLS_SET);
-}
-
-function parseLvaicHoldings(item) {
-  return parseConsortiumHoldings(item, 'LVAIC', LVAIC_OCLC_SYMBOLS_SET);
+function parseHoldingsForConsortium(item, name) {
+  return parseConsortiumHoldings(item, name, CONSORTIUM_OCLC_SYMBOLS_SETS.get(name));
 }
 
