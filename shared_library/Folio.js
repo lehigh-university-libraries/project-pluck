@@ -10,14 +10,6 @@ const ITEM_STATUSES = [
   'Unavailable',
 ];
 
-if (typeof FOLIOAUTHLIBRARY === 'undefined') {
-  FOLIOAUTHLIBRARY = {
-    getBaseOkapi: getBaseOkapi,
-    authenticateAndSetHeaders: authenticateAndSetHeaders,
-    getHttpGetOptions: getHttpGetOptions,
-    getHttpGetHeaders: getHttpGetHeaders,
-  }
-}
 
 function getLoadingMode() {
   const mode = properties.getProperty('loadingMode');
@@ -62,7 +54,7 @@ function authenticate() {
     'password': Utilities.newBlob(Utilities.base64Decode(properties.getProperty("password")))
       .getDataAsString(),
   };
-  FOLIOAUTHLIBRARY.authenticateAndSetHeaders(folioConfig);
+  login(folioConfig);
   return true;
 }
 
@@ -242,15 +234,15 @@ function reauthenticate() {
 function queryFolioGet(url) {
   // execute query
   const environment = properties.getProperty("environment");
-  const query = FOLIOAUTHLIBRARY.getBaseOkapi(environment) + url;
+  const query = getBaseOkapi(environment) + url;
   console.log('Executing GET query: ', query);
-  let getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
+  let getOptions = getHttpGetOptions();
   let response = UrlFetchApp.fetch(query, getOptions);
 
   // retry once on 401
   if (response.getResponseCode() === 401) {
     reauthenticate();
-    getOptions = FOLIOAUTHLIBRARY.getHttpGetOptions();
+    getOptions = getHttpGetOptions();
     response = UrlFetchApp.fetch(query, getOptions);
   }
 
@@ -269,13 +261,13 @@ function queryFolioGet(url) {
 
 function queryFolioPost(url, payload) {
   const environment = properties.getProperty("environment");
-  const query = FOLIOAUTHLIBRARY.getBaseOkapi(environment) + url;
+  const query = getBaseOkapi(environment) + url;
   const payloadString = JSON.stringify(payload);
   console.log(`Executing POST query with url ${url} and payload ${payloadString}`);
   const buildOptions = () => ({
     'method': 'post',
     'contentType': 'application/json',
-    'headers': FOLIOAUTHLIBRARY.getHttpPostHeaders(),
+    'headers': getHttpPostHeaders(),
     'payload': payloadString,
     'muteHttpExceptions': true,
   });
@@ -298,10 +290,10 @@ function queryFolioPost(url, payload) {
 function queryFolioPut(url, payload) {
   // execute query
   const environment = properties.getProperty("environment");
-  const query = FOLIOAUTHLIBRARY.getBaseOkapi(environment) + url;
+  const query = getBaseOkapi(environment) + url;
   const payloadString = JSON.stringify(payload);
   console.log(`Executing PUT query with url ${url} and payload ${payloadString}`);
-  const headers = FOLIOAUTHLIBRARY.getHttpGetHeaders();
+  const headers = getHttpGetHeaders();
   headers['Accept'] = '*/*'
   const options = {
     'method': 'put',
