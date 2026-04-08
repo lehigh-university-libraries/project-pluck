@@ -2,10 +2,7 @@ TOKEN_URL = 'https://oauth.oclc.org/token';
 WORLDCATSEARCH_BASE_URL = 'https://americas.discovery.api.oclc.org/worldcat/search/v2';
 WORLDCATSEARCH_SCOPES = 'wcapi';
 
-const PALCI_OCLC_SYMBOLS = ['AVL','BEA','BMC','PBU','PBE','CRC','PMC','HHC','PBB','LQS','MAN','XR4','ALL','DKC','DRU','DXU','DUQ','ETS','EAS','ELZ','LFM','PGU','GDC','GBL','HUSAT','HVC','HFC','PZI','PJU','KOL','KZS','LRC','LAS','LAF','VFL','LVC','LYU','LYC','WHV','MRW','QRA','PGM','MVS','CMZ','NJM','MOR','EVI','ZMU','ZYU','UPM','CSC','REC','EIB','PHU','PMN','PTP','ROB','NJG','NJR','PSF','SJD','STH','SQP','SRS','PHA','SUS','PSC','TEU','PCT','PAU','PIT','SRU','URS','PVU','PUG','QWC','WVX','WVU','WFN','UWC','YCP'];
 const PALCI_OCLC_SYMBOLS_SET = new Set(PALCI_OCLC_SYMBOLS);
-
-const LVAIC_OCLC_SYMBOLS = ['CC#', 'LAF', 'LYU', 'MOR', 'EVI', 'ALL'];
 const LVAIC_OCLC_SYMBOLS_SET = new Set(LVAIC_OCLC_SYMBOLS);
 
 function initOclc() {
