@@ -1,18 +1,3 @@
-// START OF CONFIGURATION
-
-const FOLIO_API_URL = {   // OKAPI ENDPOINTS
-  'prod': 'https://lehigh-okapi.folio.indexdata.com',
-  'test': 'https://lehigh-test-okapi.folio.indexdata.com'
- };
-
-const TENANT = "lu";
-
-// END OF CONFIGURATION
-
-function getBaseOkapi(environment) {
-  return FOLIO_API_URL[environment];
-}
-
 function login(config) {
   console.log("FolioAuth login called");
   if ('username' in config && 'password' in config) {
@@ -22,6 +7,10 @@ function login(config) {
   } else {
     throw new Error("Config must contain username and password attributes.");
   }
+}
+
+function getBaseOkapi(environment) {
+  return FOLIO_API_URL[environment];
 }
 
 function getHttpGetHeaders() {

@@ -1,62 +1,22 @@
 
+// Performance tuning
 const FOLIO_LOAD_COUNT = 50;
 const METADB_LOAD_COUNT = 1000;
 const FOLIO_ENRICH_COUNT = 50;
 const METADB_ENRICH_COUNT = 50;
 const FLUSH_RATE = 5;
 const PAUSE_TIME = 5000;
+
+// Spreadsheet UI
 const TAB_COMPLETE_COLOR = 'green';
-
-// Decisions
-const WITHDRAW = 'withdrawn';
-const REMOTE = 'move to remote storage';
-const SC = 'move to special collections';
-const MISSING = 'missing';
-const NO_CHANGE = 'no change';
-const DECISIONS = [ WITHDRAW, REMOTE, SC, MISSING, NO_CHANGE] ;
-const DECISIONS_VALIDATION = SpreadsheetApp.newDataValidation().requireValueInList(DECISIONS).build();
-
-// Final States
-const FINAL_STATE_KEEP = 'decision-keep-2024';
-const FINAL_STATE_WITHDRAW = 'decision-withdraw-2024';
-
-const DECISION_TO_FINAL_STATE = new Map([
-  [WITHDRAW, FINAL_STATE_WITHDRAW],
-  [REMOTE, FINAL_STATE_KEEP],
-  [SC, FINAL_STATE_KEEP],
-  [MISSING, FINAL_STATE_WITHDRAW],
-  [NO_CHANGE, FINAL_STATE_KEEP],
-]);
-
 const MAX_ADDENDUM_LENGTH = 500;
-
-// status columns
 const ADD_SUCCESS_MESSAGE = 'Added Note';
 const FINAL_STATE_SUCCESS_MESSAGE = 'Final State Processed';
 const SUCCESS_BACKGROUND = 'lightgreen';
 const FAILURE_BACKGROUND = 'lightcoral';
 
-// Retention Statistical Codes
-const RETENTION_CODES = [
-  'EAST',
-]
-
-// Inventored Statistical Codes
-const INVENTORIED_CODES = [
-  'INV-2025',
-]
-
-// Decision Note
-const DECISION_NOTE_ITEM_TYPE = 'Project Pluck Decision';
-
-const MISSING_CHECK_IN_NOTE_TYPE = 'Check in';
-const MISSING_CHECK_IN_NOTE_TEXT = 'Withdrawn.  Route to Cataloging.';
-
-const FACULTY_AUTHOR_NOTE_TEXT = "Lehigh Faculty Author Publication";
-const LEGACY_CIRC_COUNT_NOTE_TYPE_NAME = 'OLE-Circ-Count';
-const OCLC_NUMBER_IDENTIFIER_TYPE_NAME = 'OCLC';
-
-const INSTANCE_STATUS_WITHDRAWN_CODE = 'Withdrawn';
+// Derived from Config.js — do not edit directly
+const DECISIONS_VALIDATION = SpreadsheetApp.newDataValidation().requireValueInList(DECISIONS).build();
 
 var DECISION_CODE_TO_ID;
 var LOCATIONS;
@@ -183,8 +143,9 @@ function tryLoadMoreItems(sheet) {
   headers = getSheetHeaders(sheet);
   const loadOclc = headers.some(h => ALL_HEADERS.get(h) === OCLC_SOURCE);
   const loadHathi = headers.some(h => ALL_HEADERS.get(h) === HATHI_SOURCE);
+  loadFolioNotes = headers.some(h => ALL_HEADERS.get(h) === FOLIO_NOTES_SOURCE);
 
-  initFolio();
+  initFolio(loadFolioNotes);
   if (loadOclc) initOclc();
   if (loadHathi) initHathi();
   writeHeaders(sheet);

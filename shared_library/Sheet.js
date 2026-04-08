@@ -29,6 +29,7 @@ const PROCESS_FINAL_STATE_STATUS = 'Process Final State Status';
 
 // data source type constants
 const INITIAL_LOAD = 'initialLoad';
+const FOLIO_NOTES_SOURCE = 'folioNotes';
 const OCLC_SOURCE = 'oclc';
 const HATHI_SOURCE = 'hathi';
 const DECISION_SOURCE = 'decisions';
@@ -42,8 +43,8 @@ const ALL_HEADERS = new Map([
   [ITEM_STATUS,                      INITIAL_LOAD],
   [RETENTION,                        INITIAL_LOAD],
   [INVENTORIED,                      INITIAL_LOAD],
-  [FACULTY_AUTHOR,                   INITIAL_LOAD],
-  [LEGACY_CIRC_COUNT,                INITIAL_LOAD],
+  [FACULTY_AUTHOR,                   FOLIO_NOTES_SOURCE],
+  [LEGACY_CIRC_COUNT,                FOLIO_NOTES_SOURCE],
   [FOLIO_CIRC_COUNT,                 INITIAL_LOAD],
   [ELECTRONIC_HOLDINGS,              INITIAL_LOAD],
   [DAMAGE,                           INITIAL_LOAD],

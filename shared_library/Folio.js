@@ -32,17 +32,21 @@ function loadItemForBarcode(barcode, holdingsRecord, instance, circulations) {
 }
 
 let STATISTICAL_CODE_BY_ID;  // id → code name
+var DECISION_NOTE_TYPE_ID;
+var INSTANCE_STATUS_WITHDRAWN_ID;
 var LEGACY_CIRC_COUNT_NOTE_TYPE_ID;
 var OCLC_NUMBER_IDENTIFIER_TYPE_ID;
 
-function initFolio() {
+function initFolio(loadFolioNotes = false) {
   getOrCreate('authenticate', authenticate, FOLIO_CACHE_TIME);
   LOCATIONS = getOrCreate('loadLocations', loadLocations, FOLIO_CACHE_TIME);
   DECISION_CODE_TO_ID = getOrCreate('loadStatisticalCodes', loadStatisticalCodes, FOLIO_CACHE_TIME);
   STATISTICAL_CODE_BY_ID = Object.fromEntries(Object.entries(DECISION_CODE_TO_ID).map(([k, v]) => [v, k]));
   DECISION_NOTE_TYPE_ID = getOrCreate('loadDecisionNoteTypeId', loadDecisionNoteTypeId, FOLIO_CACHE_TIME);
   INSTANCE_STATUS_WITHDRAWN_ID = getOrCreate('loadInstanceStatusWithdrawnId', loadInstanceStatusWithdrawnId, FOLIO_CACHE_TIME);
-  LEGACY_CIRC_COUNT_NOTE_TYPE_ID = getOrCreate('loadLegacyCircNoteTypeId', loadLegacyCircNoteTypeId, FOLIO_CACHE_TIME);
+  if (loadFolioNotes) {
+    LEGACY_CIRC_COUNT_NOTE_TYPE_ID = getOrCreate('loadLegacyCircNoteTypeId', loadLegacyCircNoteTypeId, FOLIO_CACHE_TIME);
+  }
   OCLC_NUMBER_IDENTIFIER_TYPE_ID = getOrCreate('loadOclcIdentifierTypeId', loadOclcIdentifierTypeId, FOLIO_CACHE_TIME);
   // logTime('after FOLIO init');
 }
