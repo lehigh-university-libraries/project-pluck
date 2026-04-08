@@ -1,6 +1,9 @@
 node_modules
 package*.json
 .clasp.json*
-appsscript.json
 .eslintrc.json
 .vscode
+
+# Share the shared library appscript.json, but not the instance version.  The 
+# instance version will point to an institution-specific deployment of the shared library.
+instance/appsscript.json
