@@ -65,3 +65,4 @@ const DECISION_TO_FINAL_STATE = new Map([
   [MISSING,  FINAL_STATE_WITHDRAW],
   [NO_CHANGE,FINAL_STATE_KEEP],
 ]);
+const DECISIONS_VALIDATION = SpreadsheetApp.newDataValidation().requireValueInList(DECISIONS).build();

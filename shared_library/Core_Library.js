@@ -15,8 +15,6 @@ const FINAL_STATE_SUCCESS_MESSAGE = 'Final State Processed';
 const SUCCESS_BACKGROUND = 'lightgreen';
 const FAILURE_BACKGROUND = 'lightcoral';
 
-// Derived from Config.js — do not edit directly
-const DECISIONS_VALIDATION = SpreadsheetApp.newDataValidation().requireValueInList(DECISIONS).build();
 
 var DECISION_CODE_TO_ID;
 var LOCATIONS;
