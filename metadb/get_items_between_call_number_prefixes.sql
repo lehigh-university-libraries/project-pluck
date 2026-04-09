@@ -24,7 +24,7 @@ RETURNS TABLE (
     contributor TEXT,
     publication_date TEXT,
     faculty_author BOOLEAN,
-    legacy_circ_count INTEGER,
+    item_notes TEXT,
     folio_circ_count BIGINT,
     oclc_number TEXT,
     item_effective_location_name TEXT,
@@ -132,38 +132,11 @@ WITH
         WHERE item_id IN (SELECT item_id FROM filtered_range)
         GROUP BY item_id
     ),
-    -- 5. The "One-to-One" data (Lookups/References)
-    ref_faculty_status AS (
-        SELECT DISTINCT instance_id, TRUE as is_faculty
-        FROM folio_derived.instance_notes
-        WHERE instance_id IN (SELECT instance_id FROM filtered_range)
-          AND instance_note = 'Lehigh Faculty Author Publication'
-    ),
-    ref_legacy_circ AS (
-        SELECT item_id, note
+    summarized_item_notes AS (
+        SELECT item_id, json_agg(json_build_object('type', note_type_name, 'note', note))::TEXT AS notes
         FROM folio_derived.item_notes
         WHERE item_id IN (SELECT item_id FROM filtered_range)
-          AND note_type_name = 'OLE-Circ-Count'
-    ),
-    ref_locations AS (
-        SELECT id, name
-        FROM folio_inventory.location__t
-        WHERE id IN (SELECT effective_location_id FROM filtered_range)
-           OR id IN (SELECT holdings_permanent_location_id FROM filtered_range)
-    ),
-    ref_material_types AS (
-        SELECT id, name
-        FROM folio_inventory.material_type__t
-        WHERE id IN (SELECT material_type_id FROM filtered_range)
-    ),
-    ref_damage AS (
-        SELECT DISTINCT ON (item_ext.item_id) item_ext.item_id, item_notes.note
-        FROM folio_derived.item_ext
-        JOIN folio_derived.item_notes ON item_notes.item_id = item_ext.item_id
-            AND item_notes.note_type_name = 'Inventoried Condition'
-        WHERE item_ext.item_id IN (SELECT item_id FROM filtered_range)
-          AND item_ext.damaged_status_name = 'Damaged'
-        ORDER BY item_ext.item_id
+        GROUP BY item_id
     ),
     electronic_holdings_data AS (
         SELECT
@@ -188,6 +161,33 @@ WITH
               WHERE inst2.id IN (SELECT instance_id FROM filtered_range)
           )
         GROUP BY hn_print.note
+    ),
+    -- 5. The "One-to-One" data (Lookups/References)
+    ref_faculty_status AS (
+        SELECT DISTINCT instance_id, TRUE as is_faculty
+        FROM folio_derived.instance_notes
+        WHERE instance_id IN (SELECT instance_id FROM filtered_range)
+          AND instance_note = 'Lehigh Faculty Author Publication'
+    ),
+    ref_locations AS (
+        SELECT id, name
+        FROM folio_inventory.location__t
+        WHERE id IN (SELECT effective_location_id FROM filtered_range)
+           OR id IN (SELECT holdings_permanent_location_id FROM filtered_range)
+    ),
+    ref_material_types AS (
+        SELECT id, name
+        FROM folio_inventory.material_type__t
+        WHERE id IN (SELECT material_type_id FROM filtered_range)
+    ),
+    ref_damage AS (
+        SELECT DISTINCT ON (item_ext.item_id) item_ext.item_id, item_notes.note
+        FROM folio_derived.item_ext
+        JOIN folio_derived.item_notes ON item_notes.item_id = item_ext.item_id
+            AND item_notes.note_type_name = 'Inventoried Condition'
+        WHERE item_ext.item_id IN (SELECT item_id FROM filtered_range)
+          AND item_ext.damaged_status_name = 'Damaged'
+        ORDER BY item_ext.item_id
     )
 -- 6. Final Select
 SELECT 
@@ -205,7 +205,7 @@ SELECT
     summarized_contributors.names AS contributor,
     summarized_publications.dates AS publication_date,
     COALESCE(ref_faculty_status.is_faculty, FALSE) AS faculty_author,
-    COALESCE(NULLIF(regexp_replace(ref_legacy_circ.note, '\D', '', 'g'), ''), '0')::INTEGER AS legacy_circ_count,
+    summarized_item_notes.notes AS item_notes,
     COALESCE(counted_folio_circ.checkout_count, 0) AS folio_circ_count,
     summarized_oclc.identifiers AS oclc_number,
     loc_eff.name AS item_effective_location_name,
@@ -218,7 +218,7 @@ LEFT JOIN folio_inventory.instance__t inst ON filtered_range.instance_id = inst.
 LEFT JOIN summarized_contributors ON filtered_range.instance_id = summarized_contributors.instance_id
 LEFT JOIN summarized_publications ON filtered_range.instance_id = summarized_publications.instance_id
 LEFT JOIN ref_faculty_status ON filtered_range.instance_id = ref_faculty_status.instance_id
-LEFT JOIN ref_legacy_circ ON filtered_range.item_id = ref_legacy_circ.item_id
+LEFT JOIN summarized_item_notes ON filtered_range.item_id = summarized_item_notes.item_id
 LEFT JOIN counted_folio_circ ON filtered_range.item_id = counted_folio_circ.item_id
 LEFT JOIN summarized_oclc ON filtered_range.instance_id = summarized_oclc.instance_id
 LEFT JOIN ref_locations AS loc_eff ON filtered_range.effective_location_id = loc_eff.id
