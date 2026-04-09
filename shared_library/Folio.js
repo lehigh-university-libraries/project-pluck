@@ -198,7 +198,8 @@ function isFacultyAuthor(item) {
 }
 
 function parseLegacyCircCount(item) {
-  return item.legacy_circ_count;
+  const notes = JSON.parse(item.item_notes || '[]');
+  return notes.find(n => n.type === LEGACY_CIRC_COUNT_NOTE_TYPE_NAME)?.note ?? 0;
 }
 
 function parseFolioCircCount(item) {

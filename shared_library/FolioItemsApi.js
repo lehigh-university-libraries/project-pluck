@@ -76,7 +76,7 @@ function parseLegacyCircCountFolio(item) {
       return note.note;
     }
   }
-  return null;
+  return 0;
 }
 
 function parseOclcNumberFolio(item) {
