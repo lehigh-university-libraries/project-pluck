@@ -141,9 +141,8 @@ function tryLoadMoreItems(sheet) {
   headers = getSheetHeaders(sheet);
   const loadOclc = headers.some(h => ALL_HEADERS.get(h) === OCLC_SOURCE);
   const loadHathi = headers.some(h => ALL_HEADERS.get(h) === HATHI_SOURCE);
-  loadFolioNotes = headers.some(h => ALL_HEADERS.get(h) === FOLIO_NOTES_SOURCE);
 
-  initFolio(loadFolioNotes);
+  initFolio();
   if (loadOclc) initOclc();
   if (loadHathi) initHathi();
   writeHeaders(sheet);
@@ -211,7 +210,8 @@ function tryLoadMoreItems(sheet) {
       row++;
       writeItemToSheet(sheet, row, item);
       initDecision(sheet, row);
-      applyAutoDecisions(sheet, row, item, existingDecisions[i]);
+      const hadPreviousDecision = restorePreviousDecision(sheet, row, item);
+      if (!hadPreviousDecision) applyAutoDecisions(sheet, row, item, existingDecisions[i]);
       if (row % FLUSH_RATE == 0) {
         SpreadsheetApp.flush();
       }
@@ -241,13 +241,45 @@ function stopLoading() {
   flipKillSwitch();
 }
 
-
-
-
-
-
 function initDecision(sheet, row) {
   sheet.getRange(row, getColumn(DECISION)).setDataValidation(DECISIONS_VALIDATION);
+}
+
+function findDecisionNote(item) {
+  const notes = JSON.parse(item.item_notes || '[]');
+  return notes.find(n => n.type === DECISION_NOTE_ITEM_TYPE)?.note ?? null;
+}
+
+function restorePreviousDecision(sheet, row, item) {
+  const decisionNote = findDecisionNote(item);
+  if (!decisionNote) return false;
+
+  const decisionCol = getColumn(DECISION);
+  const addendumCol = getColumn(DECISION_ADDENDUM);
+  if (decisionCol) {
+    const cell = sheet.getRange(row, decisionCol);
+    cell.clearDataValidations();
+    cell.setBackground('#d9d9d9');
+  }
+  if (addendumCol) {
+    sheet.getRange(row, addendumCol).setBackground('#d9d9d9');
+  }
+
+  const addStatusCol = getColumn(ADD_DECISION_STATUS);
+  if (addStatusCol) {
+    sheet.getRange(row, addStatusCol).setValue(`Previously saved: ${decisionNote}`);
+  }
+
+  const codes = new Set((item.statistical_codes || '').split('; '));
+  const wasFinalized = [...DECISION_TO_FINAL_STATE.values()].some(c => codes.has(c));
+  if (wasFinalized) {
+    const finalStateCol = getColumn(PROCESS_FINAL_STATE_STATUS);
+    if (finalStateCol) {
+      sheet.getRange(row, finalStateCol).setValue('Previously Processed');
+    }
+  }
+
+  return true;
 }
 
 function addDecisions() {

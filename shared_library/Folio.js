@@ -32,21 +32,17 @@ function loadItemForBarcode(barcode, holdingsRecord, instance, circulations) {
 }
 
 let STATISTICAL_CODE_BY_ID;  // id → code name
-var DECISION_NOTE_TYPE_ID;
+let ITEM_NOTE_TYPE_BY_ID;    // id → note type name
 var INSTANCE_STATUS_WITHDRAWN_ID;
-var LEGACY_CIRC_COUNT_NOTE_TYPE_ID;
 var OCLC_NUMBER_IDENTIFIER_TYPE_ID;
 
-function initFolio(loadFolioNotes = false) {
+function initFolio() {
   getOrCreate('authenticate', authenticate, FOLIO_CACHE_TIME);
   LOCATIONS = getOrCreate('loadLocations', loadLocations, FOLIO_CACHE_TIME);
   DECISION_CODE_TO_ID = getOrCreate('loadStatisticalCodes', loadStatisticalCodes, FOLIO_CACHE_TIME);
   STATISTICAL_CODE_BY_ID = Object.fromEntries(Object.entries(DECISION_CODE_TO_ID).map(([k, v]) => [v, k]));
-  DECISION_NOTE_TYPE_ID = getOrCreate('loadDecisionNoteTypeId', loadDecisionNoteTypeId, FOLIO_CACHE_TIME);
+  ITEM_NOTE_TYPE_BY_ID = getOrCreate('loadItemNoteTypes', loadItemNoteTypes, FOLIO_CACHE_TIME);
   INSTANCE_STATUS_WITHDRAWN_ID = getOrCreate('loadInstanceStatusWithdrawnId', loadInstanceStatusWithdrawnId, FOLIO_CACHE_TIME);
-  if (loadFolioNotes) {
-    LEGACY_CIRC_COUNT_NOTE_TYPE_ID = getOrCreate('loadLegacyCircNoteTypeId', loadLegacyCircNoteTypeId, FOLIO_CACHE_TIME);
-  }
   OCLC_NUMBER_IDENTIFIER_TYPE_ID = getOrCreate('loadOclcIdentifierTypeId', loadOclcIdentifierTypeId, FOLIO_CACHE_TIME);
   // logTime('after FOLIO init');
 }
@@ -83,11 +79,9 @@ function loadStatisticalCodes() {
   return statisticalCodes.reduce((map, statisticalCode) => { map[statisticalCode.code] = statisticalCode.id; return map; }, {});
 }
 
-function loadDecisionNoteTypeId() {
-  const url = `/item-note-types?limit=100&query=${encodeURIComponent(`name=="${DECISION_NOTE_ITEM_TYPE}"`)}`;
-  const noteTypes = queryFolioGet(url)['itemNoteTypes'];
-  const noteType = noteTypes[0];
-  return noteType.id;
+function loadItemNoteTypes() {
+  const noteTypes = queryFolioGet(`/item-note-types?limit=1000`)['itemNoteTypes'];
+  return noteTypes.reduce((map, nt) => { map[nt.id] = nt.name; return map; }, {});
 }
 
 function loadInstanceStatusWithdrawnId() {
@@ -97,10 +91,6 @@ function loadInstanceStatusWithdrawnId() {
   return instanceStatus.id;
 }
 
-function loadLegacyCircNoteTypeId() {
-  const url = `/item-note-types?limit=1000&query=${encodeURIComponent(`name=="${LEGACY_CIRC_COUNT_NOTE_TYPE_NAME}"`)}`;
-  return queryFolioGet(url)['itemNoteTypes'][0].id;
-}
 
 function loadOclcIdentifierTypeId() {
   const url = `/identifier-types?limit=1000&query=${encodeURIComponent(`name=="${OCLC_NUMBER_IDENTIFIER_TYPE_NAME}"`)}`;

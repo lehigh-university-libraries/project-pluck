@@ -8,7 +8,7 @@ const TENANT = "lu";
 
 // FOLIO item note types
 // Names must match the note types configured in your FOLIO instance.
-const DECISION_NOTE_ITEM_TYPE = 'Project Pluck Decision';
+const DECISION_NOTE_ITEM_TYPE = 'Project Pluck 2024 Decision';
 const MISSING_CHECK_IN_NOTE_TYPE = 'Check in';
 const MISSING_CHECK_IN_NOTE_TEXT = 'Withdrawn.  Route to Cataloging.';
 // Used only if the Faculty Author column is enabled.

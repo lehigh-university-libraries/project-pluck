@@ -28,9 +28,8 @@ function clearCache() {
     'authenticate', 
     'loadLocations', 
     'loadStatisticalCodes', 
-    'loadDecisionNoteTypeId', 
+    'loadItemNoteTypes',
     'loadInstanceStatusWithdrawnId',
-    'loadLegacyCircNoteTypeId',
     'loadOclcIdentifierTypeId',
   ]);
 }

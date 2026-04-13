@@ -1,8 +1,6 @@
 // FOLIO REST API item loading — used only in 'folio' loadingMode.
 // In 'metadb' mode these functions are not called; see loadItemsMetadb in Folio.js.
 
-let loadFolioNotes = false;
-
 function loadItemsFolio(locationId, offset, count) {
   const statusNamesString = ITEM_STATUSES.map((status) => `"${status}"`).join(' OR ');
   const url = `/inventory/items?query=${encodeURIComponent(`effectiveLocationId=="${locationId}" AND (instance.discoverySuppress=="false") AND (status.name = (${statusNamesString})) sortby effectiveCallNumberComponents.callNumber`)}&limit=${count}&offset=${offset}`;
@@ -46,10 +44,12 @@ function normalizeFolioItem(item) {
   item.statistical_codes = (item.statisticalCodeIds || [])
     .map(id => STATISTICAL_CODE_BY_ID[id] ?? id)
     .join('; ');
-  if (loadFolioNotes) {
-    item.faculty_author = parseFacultyAuthorFolio(item);
-    item.legacy_circ_count = parseLegacyCircCountFolio(item);
-  }
+  item.item_notes = JSON.stringify((item.notes || []).map(n => ({
+    type: ITEM_NOTE_TYPE_BY_ID[n.itemNoteTypeId] ?? n.itemNoteTypeId,
+    note: n.note,
+  })));
+  item.faculty_author = parseFacultyAuthorFolio(item);
+  item.legacy_circ_count = parseLegacyCircCountFolio(item);
   item.folio_circ_count = item.circulations?.totalRecords;
   item.oclc_number = parseOclcNumberFolio(item);
   item.instance_uuid = item.instance?.id;
@@ -70,13 +70,7 @@ function parseFacultyAuthorFolio(item) {
 }
 
 function parseLegacyCircCountFolio(item) {
-  const notes = item['notes'] ?? [];
-  for (const note of notes) {
-    if (note.itemNoteTypeId == LEGACY_CIRC_COUNT_NOTE_TYPE_ID) {
-      return note.note;
-    }
-  }
-  return 0;
+  return parseLegacyCircCount(item);
 }
 
 function parseOclcNumberFolio(item) {
