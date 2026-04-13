@@ -27,7 +27,7 @@ function authenticateOclc(id, secret) {
 
 function buildBibsHoldingsRequest(oclcNumber, token) {
   return {
-    url: WORLDCATSEARCH_BASE_URL + `/bibs-holdings?oclcNumber=${oclcNumber}&limit=50`,
+    url: WORLDCATSEARCH_BASE_URL + `/bibs-holdings?oclcNumber=${oclcNumber}&limit=50&lat=${INSTITUTION_LATITUDE}&lon=${INSTITUTION_LONGITUDE}&numberNearestHoldings=50`,
     muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + token },
   };

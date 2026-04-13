@@ -37,6 +37,10 @@ const INVENTORIED_CODES = [
   'INV-2025',
 ];
 
+// Geographic coordinates of your institution, used to find the nearest OCLC holdings.
+const INSTITUTION_LATITUDE = 40.6064;
+const INSTITUTION_LONGITUDE = -75.3802;
+
 // OCLC consortium symbols
 // Map each consortium name to its list of OCLC member symbols.
 // Used to approximate consortium holding counts from the WorldCat API.
