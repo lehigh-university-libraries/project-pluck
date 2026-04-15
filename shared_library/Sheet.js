@@ -13,9 +13,8 @@ const FOLIO_CIRC_COUNT = 'FOLIO Circ Count';
 const ELECTRONIC_HOLDINGS = 'E-Holdings';
 const DAMAGE = 'Damage';
 const OCLC_NUMBER = 'OCLC Number';
+const CONSORTIUM_HOLDINGS_SUFFIX = ' Holdings';
 const OCLC_HOLDINGS = 'OCLC Holdings';
-const PALCI_HOLDINGS = 'PALCI Holdings';
-const LVAIC_HOLDINGS = 'LVAIC Holdings';
 const HATHI_EBOOK = 'Hathi e-book';
 const INSTANCE_UUID = 'Instance UUID';
 const INSTANCE_HRID = 'Instance HRID';
@@ -49,8 +48,7 @@ const ALL_HEADERS = new Map([
   [DAMAGE,                           INITIAL_LOAD],
   [OCLC_NUMBER,                      INITIAL_LOAD],  // comes from FOLIO/metadb, not OCLC API
   [OCLC_HOLDINGS,                    OCLC_SOURCE],
-  [PALCI_HOLDINGS,                   OCLC_SOURCE],
-  [LVAIC_HOLDINGS,                   OCLC_SOURCE],
+  ...[...CONSORTIUM_OCLC_SYMBOLS.keys()].map(name => [`${name}${CONSORTIUM_HOLDINGS_SUFFIX}`, OCLC_SOURCE]),
   [HATHI_EBOOK,                      HATHI_SOURCE],
   [INSTANCE_UUID,                    INITIAL_LOAD],
   [INSTANCE_HRID,                    INITIAL_LOAD],
@@ -110,9 +108,12 @@ function writeItemToSheet(sheet, row, item) {
   writeToRow(getColumn(ELECTRONIC_HOLDINGS), parseElectronicHoldings(item));
   writeToRow(getColumn(DAMAGE), parseDamage(item));
   writeToRow(getColumn(OCLC_NUMBER), item.oclc_number);
-  writeToRow(getColumn(OCLC_HOLDINGS), parseOclcHoldings(item));
-  writeToRow(getColumn(PALCI_HOLDINGS), parseHoldingsForConsortium(item, 'PALCI'));
-  writeToRow(getColumn(LVAIC_HOLDINGS), parseHoldingsForConsortium(item, 'LVAIC'));
+  const oclcHoldingsCol = getColumn(OCLC_HOLDINGS);
+  if (oclcHoldingsCol) writeToRow(oclcHoldingsCol, parseOclcHoldings(item));
+  for (const name of CONSORTIUM_OCLC_SYMBOLS.keys()) {
+    const col = getColumn(`${name}${CONSORTIUM_HOLDINGS_SUFFIX}`);
+    if (col) writeToRow(col, parseHoldingsForConsortium(item, name));
+  }
   writeToRow(getColumn(HATHI_EBOOK), parseHathiEbook(item));
   writeToRow(getColumn(INSTANCE_UUID), item.instance_uuid);
   writeToRow(getColumn(INSTANCE_HRID), item.instance_hrid);
@@ -134,8 +135,8 @@ function writeHeaders(sheet) {
   // Text barcode -- allow leading zeroes
   let column = getColumnLetter(BARCODE);
   sheet.getRange(`${column}1:${column}`).setNumberFormat("@");
-  for (const countCol of [PALCI_HOLDINGS, LVAIC_HOLDINGS]) {
-    column = getColumnLetter(countCol);
+  for (const name of CONSORTIUM_OCLC_SYMBOLS.keys()) {
+    column = getColumnLetter(`${name}${CONSORTIUM_HOLDINGS_SUFFIX}`);
     if (column) sheet.getRange(`${column}1:${column}`).setHorizontalAlignment("right");
   }
 }
