@@ -321,8 +321,9 @@ function addDecision(row) {
   if (decisionAddendum) {
     decisionNote += `: ${decisionAddendum}`;
   }
+  const decisionNoteTypeId = Object.entries(ITEM_NOTE_TYPE_BY_ID).find(([, name]) => name === DECISION_NOTE_ITEM_TYPE)?.[0];
   item['notes'].push({
-    itemNoteTypeId: DECISION_NOTE_TYPE_ID,
+    itemNoteTypeId: decisionNoteTypeId,
     note: decisionNote,
     staffOnly: true,
   });
