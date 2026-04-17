@@ -85,9 +85,10 @@ Decisions and optional notes for each item are stored in FOLIO.
 The **Project Pluck > Configure auto-decision rules** menu item opens a dialog where rules can be enabled/disabled and their parameters tuned. Rules are evaluated for each item as it is loaded; the first matching rule sets the Decision and Decision Note automatically. All rules are off by default.
 
 Three built-in rules:
-- **Retention agreement, no damage**: sets *No change* for items with a retention commitment and no damage note
+- **Retention agreement**: sets *No change* for items with a retention commitment
 - **Low worldwide holdings**: sets *No change* for items with ≤ N OCLC holdings (default: 25)
 - **High circulation**: sets *No change* for items with ≥ N FOLIO circulation events (default: 1)
+- **Damage**: sets *Withdraw* for items with a damage note, optionally only when containing a specific substring
 
 Each rule's target decision and numeric parameters are configurable in the dialog.
 

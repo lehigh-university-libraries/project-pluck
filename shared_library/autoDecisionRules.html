@@ -10,6 +10,7 @@
     td { padding: 4px 8px 4px 0; vertical-align: middle; }
     td:first-child { width: 24px; }
     input[type="number"] { width: 56px; font-size: 13px; padding: 2px 4px; }
+    input[type="text"] { width: 160px; font-size: 13px; padding: 2px 4px; }
     select { font-size: 13px; padding: 2px 4px; }
     .param-label { color: #555; font-size: 12px; margin-right: 4px; }
     .buttons { margin-top: 16px; display: flex; gap: 8px; }
@@ -106,10 +107,10 @@
           lbl.className = 'param-label';
           lbl.textContent = key + ':';
           const inp = document.createElement('input');
-          inp.type = 'number';
+          inp.type = typeof val === 'string' ? 'text' : 'number';
           inp.id = inpId;
           inp.value = val;
-          inp.min = 0;
+          if (inp.type === 'number') inp.min = 0;
           inp.dataset.rule = rule.name;
           inp.dataset.field = 'param';
           inp.dataset.param = key;
@@ -127,10 +128,10 @@
       for (const rule of rulesData) {
         const cb = document.querySelector(`input[type="checkbox"][data-rule="${CSS.escape(rule.name)}"]`);
         const sel = document.querySelector(`select[data-rule="${CSS.escape(rule.name)}"]`);
-        const paramInputs = document.querySelectorAll(`input[type="number"][data-rule="${CSS.escape(rule.name)}"]`);
+        const paramInputs = document.querySelectorAll(`input[data-field="param"][data-rule="${CSS.escape(rule.name)}"]`);
         const params = {};
         for (const inp of paramInputs) {
-          params[inp.dataset.param] = Number(inp.value);
+          params[inp.dataset.param] = inp.type === 'number' ? Number(inp.value) : inp.value;
         }
         prefs[rule.name] = {
           enabled: cb ? cb.checked : false,

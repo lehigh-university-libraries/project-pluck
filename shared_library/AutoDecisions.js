@@ -26,6 +26,15 @@ function getAutoDecisionRules() {
         params: { minCircCount: 1 },
         evaluate: (item, params) => parseFolioCircCount(item) >= params.minCircCount,
       },
+      {
+        name: 'Damage note',
+        decision: WITHDRAW,
+        params: { damageContains: '' },
+        evaluate: (item, params) => { 
+          const damage = parseDamage(item);
+          return damage && (!params.damageContains || damage.toLowerCase().includes(params.damageContains.toLowerCase()));
+        },
+      },
     ];
   }
   return AUTO_DECISION_RULES;
