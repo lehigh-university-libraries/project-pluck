@@ -6,10 +6,10 @@ function getAutoDecisionRules() {
   if (!AUTO_DECISION_RULES) {
     AUTO_DECISION_RULES = [
       {
-        name: 'Retention agreement, no damage',
+        name: 'Retention agreement',
         decision: NO_CHANGE,
         params: {},
-        evaluate: (item, _params) => hasRetentionAgreement(item) && !parseDamage(item),
+        evaluate: (item, _params) => hasRetentionAgreement(item),
       },
       {
         name: 'Low worldwide holdings',
