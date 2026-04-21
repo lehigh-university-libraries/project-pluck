@@ -89,6 +89,7 @@ Three built-in rules:
 - **Low worldwide holdings**: sets *No change* for items with ≤ N OCLC holdings (default: 25)
 - **High circulation**: sets *No change* for items with ≥ N FOLIO circulation events (default: 1)
 - **Damage**: sets *Withdraw* for items with a damage note, optionally only when containing a specific substring
+- **Electronic holdings**: sets *Withdraw* for (physical) items with equivalent electronic holdings, based on certain note data set on the electronic holdings records.
 
 Each rule's target decision and numeric parameters are configurable in the dialog.
 

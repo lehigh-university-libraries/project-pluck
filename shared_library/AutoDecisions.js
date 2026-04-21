@@ -35,6 +35,17 @@ function getAutoDecisionRules() {
           return damage && (!params.damageContains || damage.toLowerCase().includes(params.damageContains.toLowerCase()));
         },
       },
+      {
+        name: 'Electronic holdings',
+        decision: WITHDRAW,
+        params: { accessMethod: 'U' },
+        evaluate: (item, params) => { 
+          const electronicHoldings = JSON.parse(item['electronic_holdings'] || '[]');
+          return electronicHoldings.some(
+            eHolding => eHolding && (eHolding['access_method'] ?? '') == params.accessMethod
+          );
+        },
+      },
     ];
   }
   return AUTO_DECISION_RULES;
