@@ -21,10 +21,16 @@ function getAutoDecisionRules() {
         },
       },
       {
-        name: 'High circulation',
+        name: 'High FOLIO circulation',
         decision: NO_CHANGE,
         params: { minCircCount: 1 },
         evaluate: (item, params) => parseFolioCircCount(item) >= params.minCircCount,
+      },
+      {
+        name: 'High pre-FOLIO circulation',
+        decision: NO_CHANGE,
+        params: { minCircCount: 1 },
+        evaluate: (item, params) => parseLegacyCircCount(item) >= params.minCircCount,
       },
       {
         name: 'Damage note',

@@ -87,7 +87,8 @@ The **Project Pluck > Configure auto-decision rules** menu item opens a dialog w
 Three built-in rules:
 - **Retention agreement**: sets *No change* for items with a retention commitment
 - **Low worldwide holdings**: sets *No change* for items with ≤ N OCLC holdings (default: 25)
-- **High circulation**: sets *No change* for items with ≥ N FOLIO circulation events (default: 1)
+- **High FOLIO circulation**: sets *No change* for items with ≥ N FOLIO circulation events (default: 1)
+- **High pre-FOLIO circulation**: sets *No change* for items with ≥ N pre-FOLIO circulation count, based on an item note (default: 1)
 - **Damage**: sets *Withdraw* for items with a damage note, optionally only when containing a specific substring
 - **Electronic holdings**: sets *Withdraw* for (physical) items with equivalent electronic holdings, based on certain note data set on the electronic holdings records.
 
