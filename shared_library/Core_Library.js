@@ -285,27 +285,57 @@ function restorePreviousDecision(sheet, row, item) {
 function addDecisions() {
   headers = getSheetHeaders(SpreadsheetApp.getActiveSheet());
   initFolio();
-  processSelectedRows(addDecision);
+  processSelectedRows(addDecision, true);
 }
 
 function processFinalStates() {
   headers = getSheetHeaders(SpreadsheetApp.getActiveSheet());
   initFolio();
-  processSelectedRows(processFinalState);
+  processSelectedRows(processFinalState, false, true);
 }
 
-function processSelectedRows(callback) {
-  const selection = SpreadsheetApp.getActiveSheet().getSelection();
-  const ranges = selection.getActiveRangeList().getRanges();
+function processSelectedRows(callback, skipPreviouslySaved = false, skipFinalStateProcessed = false) {
+  const sheet = SpreadsheetApp.getActiveSheet();
+  const ranges = sheet.getSelection().getActiveRangeList().getRanges();
   for (const range of ranges) {
-    const start = range.getRow();
-    const end = range.getLastRow();
-    for (let row = start; row <= end; row ++) {
-      const decision = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION)).getValue();
-      if (!decision) continue;
+    for (let row = range.getRow(); row <= range.getLastRow(); row++) {
+      const previouslySaved = isRowPreviouslySaved(sheet, row);
+      if (skipPreviouslySaved && previouslySaved) continue;
+      if (skipFinalStateProcessed && isRowFinalStateProcessed(sheet, row)) continue;
+      const decision = sheet.getRange(row, getColumn(DECISION)).getValue();
+      if (!decision && !previouslySaved) continue;
       callback(row);
     }
   }
+}
+
+function isRowPreviouslySaved(sheet, row) {
+  const col = getColumn(ADD_DECISION_STATUS);
+  if (!col) return false;
+  return String(sheet.getRange(row, col).getValue()).startsWith('Previously saved: ');
+}
+
+function isRowFinalStateProcessed(sheet, row) {
+  const col = getColumn(PROCESS_FINAL_STATE_STATUS);
+  if (!col) return false;
+  const val = sheet.getRange(row, col).getValue();
+  return val === FINAL_STATE_SUCCESS_MESSAGE || val === 'Previously Processed';
+}
+
+function getDecisionForRow(sheet, row) {
+  // Current session decision
+  const decision = sheet.getRange(row, getColumn(DECISION)).getValue();
+  if (decision) return decision;
+
+  // Prior saved decision
+  const col = getColumn(ADD_DECISION_STATUS);
+  if (!col) return null;
+  const status = String(sheet.getRange(row, col).getValue());
+  const prefix = 'Previously saved: ';
+  if (!status.startsWith(prefix)) return null;
+  const parsed = status.slice(prefix.length).split(' : ')[0];
+  // Case-insensitive match against known decisions (historical notes may differ in case)
+  return [...DECISION_TO_FINAL_STATE.keys()].find(d => d.toLowerCase() === parsed.toLowerCase()) ?? parsed;
 }
 
 function addDecision(row) {
@@ -344,9 +374,15 @@ function processFinalState(row) {
   console.log("processing final state for row " + row);
   const item = loadItemForRow(row, {holdingsRecord: true, instance: true});
 
-  const decision = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION)).getValue();
+  const decision = getDecisionForRow(SpreadsheetApp.getActiveSheet(), row);
   const finalStateCode = DECISION_TO_FINAL_STATE.get(decision);
   const finalStateCodeId = DECISION_CODE_TO_ID[finalStateCode];
+  const processFinalStateCell = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(PROCESS_FINAL_STATE_STATUS));
+  if (!finalStateCodeId) {
+    processFinalStateCell.setValue(`Error: unrecognized decision "${decision}"`);
+    processFinalStateCell.setBackground(FAILURE_BACKGROUND);
+    return;
+  }
   item['statisticalCodeIds'].push(finalStateCodeId);
 
   if (finalStateCode == FINAL_STATE_WITHDRAW) {
@@ -363,7 +399,6 @@ function processFinalState(row) {
   }
 
   let error = putItem(item);
-  const processFinalStateCell = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(PROCESS_FINAL_STATE_STATUS));
   if (error) {
     processFinalStateCell.setValue('Error processing final state for item: ' + error);
     processFinalStateCell.setBackground(FAILURE_BACKGROUND);
