@@ -167,7 +167,6 @@ Each librarian or weeding project gets their own Google Sheets spreadsheet with 
 | Property | Required | Notes |
 |---|---|---|
 | `loadingMode` | Yes | `'folio'` or `'metadb'` |
-| `environment` | Yes | e.g. `'prod'` or `'test'` — passed to the FOLIO auth library |
 | `username` | Yes | FOLIO service account username |
 | `password` | Yes | Base64-encoded FOLIO password (see note below) |
 | `oclcId`, `oclcSecret` | Yes | OCLC [WorldCat Search API v2](https://developer.api.oclc.org/wcv2) credentials |
