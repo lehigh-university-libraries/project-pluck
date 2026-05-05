@@ -354,6 +354,12 @@ function addDecision(row) {
     decisionNote += `: ${decisionAddendum}`;
   }
   const decisionNoteTypeId = Object.entries(ITEM_NOTE_TYPE_BY_ID).find(([, name]) => name === DECISION_NOTE_ITEM_TYPE)?.[0];
+  const addStatusCell = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(ADD_DECISION_STATUS));
+  if (!decisionNoteTypeId) {
+    addStatusCell.setValue(`Error: note type "${DECISION_NOTE_ITEM_TYPE}" not found in FOLIO`);
+    addStatusCell.setBackground(FAILURE_BACKGROUND);
+    return;
+  }
   item['notes'].push({
     itemNoteTypeId: decisionNoteTypeId,
     note: decisionNote,
@@ -361,7 +367,6 @@ function addDecision(row) {
   });
 
   const error = putItem(item);
-  const addStatusCell = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(ADD_DECISION_STATUS));
   if (error) {
     addStatusCell.setValue(error);
     addStatusCell.setBackground(FAILURE_BACKGROUND);
