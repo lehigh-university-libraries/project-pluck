@@ -5,7 +5,8 @@ const METADB_LOAD_COUNT = 1000;
 const FOLIO_ENRICH_COUNT = 50;
 const METADB_ENRICH_COUNT = 50;
 const FLUSH_RATE = 5;
-const PAUSE_TIME = 5000;
+const LOAD_PAUSE_TIME = 5000;
+const SAVE_PAUSE_TIME = 10000;
 
 // Spreadsheet UI
 const TAB_COMPLETE_COLOR = 'green';
@@ -232,9 +233,9 @@ function scheduleLoadMoreItems() {
   }
   const trigger = ScriptApp.newTrigger('loadMoreItems')
     .timeBased()
-    .after(PAUSE_TIME)
+    .after(LOAD_PAUSE_TIME)
     .create();
-  console.log('loadMoreItems trigger scheduled to fire at: ' + new Date(Date.now() + PAUSE_TIME));
+  console.log('loadMoreItems trigger scheduled to fire at: ' + new Date(Date.now() + LOAD_PAUSE_TIME));
 }
 
 function stopLoading() {
@@ -305,6 +306,7 @@ function processSelectedRows(callback, skipPreviouslySaved = false, skipFinalSta
       const decision = sheet.getRange(row, getColumn(DECISION)).getValue();
       if (!decision && !previouslySaved) continue;
       callback(row);
+      Utilities.sleep(SAVE_PAUSE_TIME);
     }
   }
 }
