@@ -150,11 +150,11 @@ WITH
         LEFT JOIN folio_inventory.holdings_record__t holdings ON holdings.id = hn_print.holding_id
         LEFT JOIN folio_derived.holdings_notes hn_access
             ON hn_access.holding_id = hn_print.holding_id
-            AND hn_access.note_type_name = 'Ebook access method'
+            AND hn_access.note_type_name = 'Ebook access method code'
         LEFT JOIN folio_derived.holdings_notes hn_provider
             ON hn_provider.holding_id = hn_print.holding_id
-            AND hn_provider.note_type_name = 'Ebook provider'
-        WHERE hn_print.note_type_name = 'Print version (I-HRID)'
+            AND hn_provider.note_type_name = 'Ebook provider code'
+        WHERE hn_print.note_type_name = 'Print version (i-HRID)'
           AND hn_print.note IN (
               SELECT inst2.hrid
               FROM folio_inventory.instance__t inst2
