@@ -6,7 +6,7 @@ const FOLIO_ENRICH_COUNT = 50;
 const METADB_ENRICH_COUNT = 50;
 const FLUSH_RATE = 5;
 const LOAD_PAUSE_TIME = 5000;
-const SAVE_PAUSE_TIME = 10000;
+const SAVE_PAUSE_TIME = 5000;
 
 // Spreadsheet UI
 const TAB_COMPLETE_COLOR = 'green';
