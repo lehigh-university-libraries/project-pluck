@@ -201,6 +201,7 @@ function parseElectronicHoldings(item) {
   if (!raw) return '';
   const holdings = JSON.parse(raw);
   return holdings
+    .filter(h => h != null)
     .map(h => [h['access_method'], h['provider']].filter(Boolean).join(' - '))
     .join(', ');
 }
