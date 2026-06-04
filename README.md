@@ -38,7 +38,7 @@ From FOLIO (item-level fields unless otherwise noted):
     - Electronic holdings records referencing this print instance — access method and provider
 
 From OCLC WorldCat:
-- Total holdings count
+- Total holdings count, max 200 reported
 - Holdings count within one or more consortia
     - Where consortium is any defined list of OCLC symbols
     - Approximate value, since the API doesn't support this function directly
