@@ -1,0 +1,447 @@
+
+// Performance tuning
+const FOLIO_LOAD_COUNT = 50;
+const METADB_LOAD_COUNT = 1000;
+const FOLIO_ENRICH_COUNT = 50;
+const METADB_ENRICH_COUNT = 50;
+const FLUSH_RATE = 5;
+const LOAD_PAUSE_TIME = 5000;
+const SAVE_PAUSE_TIME = 5000;
+
+// Spreadsheet UI
+const TAB_COMPLETE_COLOR = 'green';
+const MAX_ADDENDUM_LENGTH = 500;
+const ADD_SUCCESS_MESSAGE = 'Added Note';
+const FINAL_STATE_SUCCESS_MESSAGE = 'Final State Processed';
+const SUCCESS_BACKGROUND = 'lightgreen';
+const FAILURE_BACKGROUND = 'lightcoral';
+
+
+var DECISION_CODE_TO_ID;
+var LOCATIONS;
+
+// Properties are limited to the current run of the script
+let properties = null;
+
+function test() {
+  // testGetLocations();
+  // testInitSheetForLocation();
+  // testAddDecision();
+  // testProcessFinalStates();
+}
+
+function testGetLocations() {
+  getLocations({
+    'environment': 'test',
+  });
+}
+
+function testInitSheetForLocation() {
+  initSheetForLocation({
+    'environment': 'test',
+    'location_id': '460df2a6-6146-4749-9ff0-a0d0730e0214',
+  });
+}
+
+function testAddDecision() {
+  initFolio();
+  addDecision(SpreadsheetApp.getActiveSpreadsheet().getActiveCell().getRow());
+}
+
+function testProcessFinalStates() {
+  initFolio();
+  processFinalStates(SpreadsheetApp.getActiveSpreadsheet().getActiveCell().getRow());
+}
+
+function initProperties(instanceProperties) {
+  properties = instanceProperties;
+}
+
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('Project Pluck')
+    .addItem('Show Sidebar', 'showSidebar')
+    .addSeparator()
+    .addItem('Select columns', 'showColumnPreferences')
+    .addItem('Configure auto-decision rules', 'showAutoDecisionRules')
+    .addItem('Reload FOLIO metadata', 'reloadFolioMetadata')
+    .addItem('Show developer info', 'showDeveloperInfo')
+    .addToUi();
+}
+
+function showSidebar() {
+  var html = HtmlService.createHtmlOutputFromFile('sidebar')
+    .setTitle('Project Pluck')
+    .setWidth(500);
+  SpreadsheetApp.getUi()
+    .showSidebar(html);
+}
+
+
+function reloadFolioMetadata() {
+  clearCache();
+  initFolio();
+  SpreadsheetApp.getUi().alert('FOLIO metadata reloaded.');
+}
+
+function showDeveloperInfo() {
+  const sheet = SpreadsheetApp.getActiveSheet();
+  const metadata = Object.fromEntries(
+    sheet.getDeveloperMetadata().map(m => [m.getKey(), m.getValue()])
+  );
+  SpreadsheetApp.getUi().alert(
+    `Sheet: ${sheet.getName()}\n` +
+    `Sheet locked: ${metadata['sheet_locked'] === 'true'}\n` +
+    `Loading active: ${metadata['loading_active'] === 'true'}\n` +
+    `Location ID: ${metadata['location_id'] ?? null}\n` +
+    `Start call number prefix: ${metadata['start_call_number_prefix'] ?? null}\n` +
+    `End call number prefix: ${metadata['end_call_number_prefix'] ?? null}\n` +
+    `Columns: ${metadata['headers'] ? JSON.parse(metadata['headers']).join(', ') : 'all (default)'}`
+  );
+}
+
+function getLocations() {
+  initFolio();
+  return Object.entries(LOCATIONS).sort((a, b) => {return a['code'] < b['code']});
+}
+
+function initSheetForLocation() {
+  console.log("initSheetForLocation. config: ", properties);
+
+  // logTime("start initSheetForLocation");
+  initKillSwitch();
+  loadMoreItems();
+}
+
+function loadMoreItems() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()
+    .find(s => s.createDeveloperMetadataFinder().withKey('loading_active').find().length > 0);
+  if (!sheet) {
+    console.log('No sheet with loading_active found');
+    return;
+  }
+  try {
+    tryLoadMoreItems(sheet);
+  }
+  catch (error) {
+    console.log('Error loading items: ', error);
+    email(`Error loading items to ${sheet.getName()}`, `${error}`);
+  }
+}
+
+function tryLoadMoreItems(sheet) {
+  if (killSwitchFlipped()) {
+    deleteSheetMetadata(sheet, 'loading_active');
+    stopMonitoring();
+    return;
+  }
+
+  console.log(`UptimeRobot monitoring ${isMonitoringEnabled() ? 'enabled' : 'disabled'}.`);
+  startMonitoring();
+
+  headers = getSheetHeaders(sheet);
+  const loadOclc = headers.some(h => ALL_HEADERS.get(h) === OCLC_SOURCE);
+  const loadHathi = headers.some(h => ALL_HEADERS.get(h) === HATHI_SOURCE);
+
+  initFolio();
+  if (loadOclc) initOclc();
+  if (loadHathi) initHathi();
+  writeHeaders(sheet);
+
+  const locationId            = getSheetMetadata(sheet, 'location_id');
+  const startCallNumberPrefix = getSheetMetadata(sheet, 'start_call_number_prefix');
+  const endCallNumberPrefix   = getSheetMetadata(sheet, 'end_call_number_prefix');
+  writeTabName(sheet, locationId, startCallNumberPrefix, endCallNumberPrefix);
+
+  const loadingMode = getLoadingMode();
+  let offset = sheet.getLastRow() - 1;
+  const loadCount = loadingMode === 'folio' ? FOLIO_LOAD_COUNT : METADB_LOAD_COUNT;
+  const enrichCount = loadingMode === 'folio' ? FOLIO_ENRICH_COUNT : METADB_ENRICH_COUNT;
+  const needed = sheet.getLastRow() + loadCount - sheet.getMaxRows();
+  if (needed > 0) sheet.insertRowsAfter(sheet.getMaxRows(), needed);
+
+  let items;
+  if (loadingMode === 'folio') {
+    console.log("Loading items in 'folio' mode.");
+    items = loadItemsFolio(locationId, offset, loadCount);
+  } else {
+    console.log("Loading items in 'metadb' mode.");
+    let locationCode = LOCATIONS[locationId]?.['code'];
+    items = loadItemsMetadb(locationCode, startCallNumberPrefix, endCallNumberPrefix, offset, loadCount);
+  }
+  console.log(`writing items to sheet with offset ${offset} and count ${loadCount}`);
+  if (items.length == 0) {
+    console.log("Loaded all items for this sheet");
+    const lastRow = sheet.getLastRow();
+    const blankRows = sheet.getMaxRows() - lastRow;
+    if (blankRows > 0) sheet.deleteRows(lastRow + 1, blankRows);
+    sheet.setTabColor(TAB_COMPLETE_COLOR);
+    deleteSheetMetadata(sheet, 'loading_active');
+    email(`${sheet.getName()} load complete`, `Google Sheets is done loading the items ${sheet.getName()}.`);
+    stopMonitoring();
+    return;
+  }
+
+  if (loadingMode === 'folio') {
+    for (const item of items) {
+      enrichItem(item, true, true, true);
+      normalizeFolioItem(item);
+      if (killSwitchFlipped()) {
+        deleteSheetMetadata(sheet, 'loading_active');
+        stopMonitoring();
+        return;
+      }
+    }
+  }
+
+  let row = sheet.getLastRow();
+  for (let i = 0; i < items.length; i += enrichCount) {
+    const batch = items.slice(i, i + enrichCount);
+    if (loadOclc) enrichBatchFromOclc(batch);
+    if (killSwitchFlipped()) {
+      deleteSheetMetadata(sheet, 'loading_active');
+      stopMonitoring();
+      return;
+    }
+    if (loadHathi) enrichBatchFromHathi(batch);
+    const batchStartRow = row + 1;
+    const existingDecisions = loadExistingDecisions(sheet, batchStartRow, batch.length);
+    for (let i = 0; i < batch.length; i++) {
+      const item = batch[i];
+      row++;
+      writeItemToSheet(sheet, row, item);
+      initDecision(sheet, row);
+      const hadPreviousDecision = restorePreviousDecision(sheet, row, item);
+      if (!hadPreviousDecision) applyAutoDecisions(sheet, row, item, existingDecisions[i]);
+      if (row % FLUSH_RATE == 0) {
+        SpreadsheetApp.flush();
+      }
+    }
+    if (killSwitchFlipped()) {
+      break;
+    }
+  }
+
+  scheduleLoadMoreItems();
+  stopMonitoring();
+}
+
+function scheduleLoadMoreItems() {
+  const triggers = ScriptApp.getProjectTriggers();
+  for (const trigger of triggers) {
+    ScriptApp.deleteTrigger(trigger);
+  }
+  const trigger = ScriptApp.newTrigger('loadMoreItems')
+    .timeBased()
+    .after(LOAD_PAUSE_TIME)
+    .create();
+  console.log('loadMoreItems trigger scheduled to fire at: ' + new Date(Date.now() + LOAD_PAUSE_TIME));
+}
+
+function stopLoading() {
+  flipKillSwitch();
+}
+
+function initDecision(sheet, row) {
+  sheet.getRange(row, getColumn(DECISION)).setDataValidation(DECISIONS_VALIDATION);
+}
+
+function findDecisionNote(item) {
+  const notes = JSON.parse(item.item_notes || '[]');
+  return notes.find(n => n.type === DECISION_NOTE_ITEM_TYPE)?.note ?? null;
+}
+
+function restorePreviousDecision(sheet, row, item) {
+  const decisionNote = findDecisionNote(item);
+  if (!decisionNote) return false;
+
+  const decisionCol = getColumn(DECISION);
+  const addendumCol = getColumn(DECISION_ADDENDUM);
+  if (decisionCol) {
+    const cell = sheet.getRange(row, decisionCol);
+    cell.clearDataValidations();
+    cell.setBackground('#d9d9d9');
+  }
+  if (addendumCol) {
+    sheet.getRange(row, addendumCol).setBackground('#d9d9d9');
+  }
+
+  const addStatusCol = getColumn(ADD_DECISION_STATUS);
+  if (addStatusCol) {
+    sheet.getRange(row, addStatusCol).setValue(`Previously saved: ${decisionNote}`);
+  }
+
+  const codes = new Set((item.statistical_codes || '').split('; '));
+  const wasFinalized = [...DECISION_TO_FINAL_STATE.values()].some(c => codes.has(c));
+  if (wasFinalized) {
+    const finalStateCol = getColumn(PROCESS_FINAL_STATE_STATUS);
+    if (finalStateCol) {
+      sheet.getRange(row, finalStateCol).setValue('Previously Processed');
+    }
+  }
+
+  return true;
+}
+
+function addDecisions() {
+  headers = getSheetHeaders(SpreadsheetApp.getActiveSheet());
+  initFolio();
+  processSelectedRows(addDecision, true);
+}
+
+function processFinalStates() {
+  headers = getSheetHeaders(SpreadsheetApp.getActiveSheet());
+  initFolio();
+  processSelectedRows(processFinalState, false, true);
+}
+
+function processSelectedRows(callback, skipPreviouslySaved = false, skipFinalStateProcessed = false) {
+  const sheet = SpreadsheetApp.getActiveSheet();
+  const ranges = sheet.getSelection().getActiveRangeList().getRanges();
+  for (const range of ranges) {
+    for (let row = range.getRow(); row <= range.getLastRow(); row++) {
+      const previouslySaved = isRowPreviouslySaved(sheet, row);
+      if (skipPreviouslySaved && previouslySaved) continue;
+      if (skipFinalStateProcessed && isRowFinalStateProcessed(sheet, row)) continue;
+      const decision = sheet.getRange(row, getColumn(DECISION)).getValue();
+      if (!decision && !previouslySaved) continue;
+      callback(row);
+      Utilities.sleep(SAVE_PAUSE_TIME);
+    }
+  }
+}
+
+function isRowPreviouslySaved(sheet, row) {
+  const col = getColumn(ADD_DECISION_STATUS);
+  if (!col) return false;
+  return String(sheet.getRange(row, col).getValue()).startsWith('Previously saved: ');
+}
+
+function isRowFinalStateProcessed(sheet, row) {
+  const col = getColumn(PROCESS_FINAL_STATE_STATUS);
+  if (!col) return false;
+  const val = sheet.getRange(row, col).getValue();
+  return val === FINAL_STATE_SUCCESS_MESSAGE || val === 'Previously Processed';
+}
+
+function getDecisionForRow(sheet, row) {
+  // Current session decision
+  const decision = sheet.getRange(row, getColumn(DECISION)).getValue();
+  if (decision) return decision;
+
+  // Prior saved decision
+  const col = getColumn(ADD_DECISION_STATUS);
+  if (!col) return null;
+  const status = String(sheet.getRange(row, col).getValue());
+  const prefix = 'Previously saved: ';
+  if (!status.startsWith(prefix)) return null;
+  const parsed = status.slice(prefix.length).split(' : ')[0];
+  // Case-insensitive match against known decisions (historical notes may differ in case)
+  return [...DECISION_TO_FINAL_STATE.keys()].find(d => d.toLowerCase() === parsed.toLowerCase()) ?? parsed;
+}
+
+function addDecision(row) {
+  console.log("adding decision for row " + row);
+  const item = loadItemForRow(row);
+
+  const decision = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION)).getValue();
+  const now = new Date().toString();
+  const decisionAddendum = String(
+    SpreadsheetApp.getActiveSheet().getRange(row, getColumn(DECISION_ADDENDUM)).getValue() || ''
+  ).substring(0, MAX_ADDENDUM_LENGTH);
+  let decisionNote = `${decision} : ${now}`;
+  if (decisionAddendum) {
+    decisionNote += `: ${decisionAddendum}`;
+  }
+  const decisionNoteTypeId = Object.entries(ITEM_NOTE_TYPE_BY_ID).find(([, name]) => name === DECISION_NOTE_ITEM_TYPE)?.[0];
+  const addStatusCell = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(ADD_DECISION_STATUS));
+  if (!decisionNoteTypeId) {
+    addStatusCell.setValue(`Error: note type "${DECISION_NOTE_ITEM_TYPE}" not found in FOLIO`);
+    addStatusCell.setBackground(FAILURE_BACKGROUND);
+    return;
+  }
+  item['notes'].push({
+    itemNoteTypeId: decisionNoteTypeId,
+    note: decisionNote,
+    staffOnly: true,
+  });
+
+  const error = putItem(item);
+  if (error) {
+    addStatusCell.setValue(error);
+    addStatusCell.setBackground(FAILURE_BACKGROUND);
+  }
+  else {
+    addStatusCell.setValue(ADD_SUCCESS_MESSAGE);
+    addStatusCell.setBackground(SUCCESS_BACKGROUND);
+  }
+}
+
+function processFinalState(row) {
+  console.log("processing final state for row " + row);
+  const item = loadItemForRow(row, {holdingsRecord: true, instance: true});
+
+  const decision = getDecisionForRow(SpreadsheetApp.getActiveSheet(), row);
+  const finalStateCode = DECISION_TO_FINAL_STATE.get(decision);
+  const finalStateCodeId = DECISION_CODE_TO_ID[finalStateCode];
+  const processFinalStateCell = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(PROCESS_FINAL_STATE_STATUS));
+  if (!finalStateCodeId) {
+    processFinalStateCell.setValue(`Error: unrecognized decision "${decision}"`);
+    processFinalStateCell.setBackground(FAILURE_BACKGROUND);
+    return;
+  }
+  item['statisticalCodeIds'].push(finalStateCodeId);
+
+  if (finalStateCode == FINAL_STATE_WITHDRAW) {
+    item['status']['name'] = 'Withdrawn';
+    item['discoverySuppress'] = true;
+  }
+
+  if (MISSING == decision) {
+    item['circulationNotes'].push({
+      noteType: MISSING_CHECK_IN_NOTE_TYPE,
+      note: MISSING_CHECK_IN_NOTE_TEXT,
+      staffOnly: true,
+    });
+  }
+
+  let error = putItem(item);
+  if (error) {
+    processFinalStateCell.setValue('Error processing final state for item: ' + error);
+    processFinalStateCell.setBackground(FAILURE_BACKGROUND);
+    return;
+  }
+  
+  if (finalStateCode == FINAL_STATE_WITHDRAW) {
+    if (!hasUnsuppressedItems(item.holdingsRecord, item)) {
+      console.log("suppress holdings record");
+      item.holdingsRecord['discoverySuppress'] = true;
+      error = putHoldingsRecord(item.holdingsRecord);
+      if (error) {
+        processFinalStateCell.setValue('Error withdrawing holdings record: ' + error);
+        processFinalStateCell.setBackground(FAILURE_BACKGROUND);
+        return;
+      }
+    
+      if (!hasUnsuppressedHoldingsRecords(item.instance, item.holdingsRecord)) {
+        console.log("suppress instance");
+        item.instance['discoverySuppress'] = true;
+        item.instance['statusId'] = INSTANCE_STATUS_WITHDRAWN_ID;
+        error = putInstance(item.instance);
+        if (error) {
+          processFinalStateCell.setValue('Error withdrawing instance: ' + error);
+          processFinalStateCell.setBackground(FAILURE_BACKGROUND);
+          return;
+        }
+      }
+    }
+  }
+
+  processFinalStateCell.setValue(FINAL_STATE_SUCCESS_MESSAGE);
+  processFinalStateCell.setBackground(SUCCESS_BACKGROUND);
+}
+
+function loadItemForRow(row, {holdingsRecord = false, instance = false, circulations = false} = {}) {
+  const barcode = SpreadsheetApp.getActiveSheet().getRange(row, getColumn(BARCODE), 1, 1).getValue();
+  return loadItemForBarcode(barcode, holdingsRecord, instance, circulations);
+}

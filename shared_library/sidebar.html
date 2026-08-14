@@ -1,0 +1,341 @@
+<html>
+
+<head>
+
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons.css">
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,700" rel="stylesheet">
+
+  <style type="text/css">
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #445460;
+    }
+
+    label, legend {
+      color: white;
+      font-weight: bold;
+    }
+
+    select {
+      text-align: left;
+
+      &:disabled {
+        color: white;
+      }
+    }
+
+    input[type=text]:disabled {
+      background-color: #d0d0d0;
+      color: #666;
+      border-color: #aaa;
+      cursor: not-allowed;
+    }
+
+    #environment div {
+      display: inline-block;
+    }
+
+    #environment div:not(:last-child) {
+      margin-right: 30px;
+    }
+  </style>
+
+</head>
+
+<body>
+  <div class="sidebar">
+    <form>
+
+      <fieldset id="environment">
+        <legend>Environment</legend>
+        <div class="block">
+          <div class="form-group">
+            <input type="radio" id="env_test" value="test" name="environment">
+            <label for="env_test">Test</label>
+          </div>
+          <div class="form-group">
+            <input type="radio" id="env_prod" value="prod" name="environment">
+            <label for="env_prod">Production</label>
+          </div>
+        </div>
+
+        <div class="block form-group">
+          <input type="button" class="action" id="init_environment" value="Load Locations" onclick="initEnvironment()" />
+        </div>
+      </fieldset>
+      <br />
+
+      <fieldset id="load_items">
+        <legend>Load Items</legend>
+
+        <div class="block form-group">
+          <label for="location">Location</label>
+          <select id="location" disabled>
+          </select>
+        </div>
+
+        <div class="block form-group">
+          <label for="start_call_number_prefix">Start Call Number Prefix</label>
+          <input type="text" id="start_call_number_prefix" disabled>
+        </div>
+
+        <div class="block form-group">
+          <label for="end_call_number_prefix">End Call Number Prefix</label>
+          <input type="text" id="end_call_number_prefix" disabled>
+        </div>
+
+        <div class="block form-group">
+          <input type="button" class="action" id="init_sheet" value="Load Items" onclick="initSheetForLocation()" />
+        </div>
+
+        <div class="block form-group">
+          <input type="button" class="action" id="stop_loading" value="Stop Loading" onclick="stopLoading()" />
+        </div>
+      </fieldset>
+      <br />
+
+      <fieldset>
+        <legend>Add Retention Decisions</legend>
+
+        <div class="block form-group">
+          <input type="button" class="action" id="add_decisions" value="Add Decisions for Selected Rows" onclick="addDecisions()" />
+        </div>
+      </fieldset>
+      <br />
+
+      <fieldset>
+        <legend>Process Final State</legend>
+
+        <div class="block form-group">
+          <input type="button" class="action" id="process_final_states" value="Process Selected Rows" onclick="processFinalStates()" />
+        </div>
+      </fieldset>
+      <br />
+    </form>
+
+    <!-- Load the jQuery library from the Google CDN -->
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+
+    <script>
+      let loadingMode;
+
+      $(function() {
+        function onSuccess(data) {
+          loadingMode = data.loadingMode;
+          if (data.loadingMode === 'folio') {
+            $('#start_call_number_prefix').closest('.form-group').hide();
+            $('#end_call_number_prefix').closest('.form-group').hide();
+          }
+          if (data.environment) {
+            $(`#environment input[value="${data.environment}"]`).prop('checked', true);
+            lockEnvironment();
+            populateLocations(data.locations);
+            currentSheetName = data.sheetState.sheetName;
+            applySheetState(data.sheetState);
+          }
+        }
+
+        function onFailure(error) {
+          console.log("Failed to get sidebar init data: ", error);
+        }
+
+        google.script.run
+          .withSuccessHandler(onSuccess)
+          .withFailureHandler(onFailure)
+          .getSidebarInitData();
+      });
+
+      function lockEnvironment() {
+        $('#environment input[type=radio]').prop('disabled', true);
+        $('#init_environment').prop('disabled', true);
+      }
+
+      function lockLoadItems() {
+        $('#location').prop('disabled', true);
+        $('#start_call_number_prefix').prop('disabled', true);
+        $('#end_call_number_prefix').prop('disabled', true);
+      }
+
+      function unlockLoadItems() {
+        $('#location').prop('disabled', false);
+        $('#start_call_number_prefix').prop('disabled', false);
+        $('#end_call_number_prefix').prop('disabled', false);
+      }
+
+      function applySheetState(state) {
+        if (!state.sheetLocked) {
+          unlockLoadItems();
+          return;
+        }
+        $('#location').val(state.locationId);
+        $('#start_call_number_prefix').val(state.startCallNumberPrefix);
+        $('#end_call_number_prefix').val(state.endCallNumberPrefix);
+        lockLoadItems();
+      }
+
+      let currentSheetName = null;
+
+      function checkActiveSheet() {
+        google.script.run
+          .withSuccessHandler(function(state) {
+            if (state.sheetName === currentSheetName) return;
+            currentSheetName = state.sheetName;
+            applySheetState(state);
+          })
+          .getActiveSheetState();
+      }
+
+      setInterval(checkActiveSheet, 10000);
+
+      function populateLocations(locations) {
+        for (const [locationId, location] of locations) {
+          let option = $(`<option value="${locationId}">${location['code']}</option>`);
+          if (location['activeSheet'] ?? false) {
+            $(option).attr('selected', true);
+          }
+          $('#location').append(option);
+        }
+        unlockLoadItems();
+      }
+
+      function initEnvironment() {
+        function onSuccess(data) {
+          console.info("locations: " + data.locations);
+          populateLocations(data.locations);
+          currentSheetName = data.sheetState.sheetName;
+          applySheetState(data.sheetState);
+        }
+
+        function onFailure(error) {
+          console.log("Failed with error: ", error);
+          google.script.run.showAlert("Failed with error: " + error);
+        }
+
+        let environment = $("#environment input[type=radio]:checked").val();
+        console.log("initEnvironment: environment is " + environment);
+        google.script.run
+          .withSuccessHandler(onSuccess)
+          .withFailureHandler(onFailure)
+          .getLocationsAndSheetState(environment);
+      }
+
+      function initSheetForLocation() {
+        $("#init_sheet").attr("disabled", "disabled");
+        lockLoadItems();
+        let environment = $("#environment input[type=radio]:checked").val();
+        let location_id = $("#location option:checked").val();
+        let location_code = $("#location option:checked").text().trim();
+        let start_call_number_prefix = $("#start_call_number_prefix").val();
+        let end_call_number_prefix = $("#end_call_number_prefix").val() || start_call_number_prefix;
+
+        if (loadingMode === 'metadb' && !start_call_number_prefix) {
+          google.script.run.showAlert("Please enter a start call number prefix.");
+          unlockLoadItems();
+          $("#init_sheet").removeAttr("disabled");
+          return;
+        }
+
+        function doInitSheet() {
+          google.script.run
+            .withSuccessHandler(function() {
+              console.info("init sheet succeeded.");
+              $("#init_sheet").removeAttr("disabled");
+            })
+            .withFailureHandler(function(error) {
+              console.info("init sheet failed.");
+              google.script.run.showAlert("Failed with error: " + error);
+              $("#init_sheet").removeAttr("disabled");
+            })
+            .initSheetForLocation(environment, location_id, start_call_number_prefix, end_call_number_prefix);
+        }
+
+        if (loadingMode === 'folio') {
+          doInitSheet();
+        } else {
+          google.script.run
+            .withSuccessHandler(function(validation) {
+              const missing = [];
+              if (!validation.start_found) missing.push(`start prefix "${start_call_number_prefix}"`);
+              if (!validation.end_found) missing.push(`end prefix "${end_call_number_prefix}"`);
+              if (missing.length > 0) {
+                google.script.run.showAlert(`No items found in location "${location_code}" matching ${missing.join(' or ')}. Adjust the call number prefix and try again.`);
+                unlockLoadItems();
+                $("#init_sheet").removeAttr("disabled");
+                return;
+              }
+              doInitSheet();
+            })
+            .withFailureHandler(function(error) {
+              google.script.run.showAlert("Preflight check failed: " + error);
+              $("#init_sheet").removeAttr("disabled");
+            })
+            .validateCallNumberBoundaries(environment, location_code, start_call_number_prefix, end_call_number_prefix);
+        }
+      }
+
+      function stopLoading() {
+        function onSuccess() {
+          console.info("stop loading succeeded.");
+          $("#stop_loading").removeAttr("disabled");
+        }
+
+        function onFailure(error) {
+          console.info("stop loading failed.");
+          google.script.run.showAlert("Failed with error: " + error);
+          $("#stop_loading").removeAttr("disabled");
+        }
+
+        $("#stop_loading").attr("disabled", "disabled");
+        google.script.run
+          .withSuccessHandler(onSuccess)
+          .withFailureHandler(onFailure)
+          .stopLoading();
+      }
+
+      function addDecisions() {
+        function onSuccess() {
+          console.info("add decisions succeeded.");
+          $("#add_decisions").removeAttr("disabled");
+        }
+
+        function onFailure(error) {
+          console.info("add decisions failed.");
+          google.script.run.showAlert("Failed with error: " + error);
+          $("#add_decisions").removeAttr("disabled");
+        }
+
+        $("#add_decisions").attr("disabled", "disabled");
+        google.script.run
+          .withSuccessHandler(onSuccess)
+          .withFailureHandler(onFailure)
+          .addDecisions();
+      }
+
+      function processFinalStates() {
+        function onSuccess() {
+          console.info("process final states succeeded.");
+          $("#process_final_states").removeAttr("disabled");
+        }
+
+        function onFailure(error) {
+          console.info("process final states failed.");
+          google.script.run.showAlert("Failed with error: " + error);
+          $("#process_final_states").removeAttr("disabled");
+        }
+
+        $("#process_final_states").attr("disabled", "disabled");
+        google.script.run
+          .withSuccessHandler(onSuccess)
+          .withFailureHandler(onFailure)
+          .processFinalStates();
+      }
+
+    </script>
+
+  </div>
+
+</body>
+
+</html>
