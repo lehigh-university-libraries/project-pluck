@@ -33,6 +33,24 @@ function getAutoDecisionRules() {
         evaluate: (item, params) => parseLegacyCircCount(item) >= params.minCircCount,
       },
       {
+        name: 'Published after year',
+        decision: NO_CHANGE,
+        params: { minYear: 2000 },
+        evaluate: (item, params) => {
+          const year = parsePublicationYear(item);
+          return year !== null && year >= params.minYear;
+        },
+      },
+      {
+        name: 'Published on or before year',
+        decision: NO_CHANGE,
+        params: { maxYear: 1900 },
+        evaluate: (item, params) => {
+          const year = parsePublicationYear(item);
+          return year !== null && year <= params.maxYear;
+        },
+      },
+      {
         name: 'Damage note',
         decision: WITHDRAW,
         params: { damageContains: '' },

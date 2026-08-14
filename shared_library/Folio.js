@@ -220,6 +220,13 @@ function parseOclcNumber(item) {
   return item['oclc_number'];
 }
 
+function parsePublicationYear(item) {
+  const raw = item['publication_date'];
+  if (!raw) return null;
+  const match = String(raw).match(/\d{4}/);
+  return match ? parseInt(match[0], 10) : null;
+}
+
 function parseLocation(locationId) {
   return LOCATIONS[locationId]?.['name'];
 }
