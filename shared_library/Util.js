@@ -25,8 +25,7 @@ function getOrCreate(cacheKey, creationFunction, cacheTime) {
 }
 function clearCache() {
   CacheService.getScriptCache().removeAll([
-    'authenticate', 
-    'loadLocations', 
+    'loadLocations',
     'loadStatisticalCodes', 
     'loadItemNoteTypes',
     'loadInstanceStatusWithdrawnId',

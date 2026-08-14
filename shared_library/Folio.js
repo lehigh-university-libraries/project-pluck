@@ -37,7 +37,9 @@ var INSTANCE_STATUS_WITHDRAWN_ID;
 var OCLC_NUMBER_IDENTIFIER_TYPE_ID;
 
 function initFolio() {
-  getOrCreate('authenticate', authenticate, FOLIO_CACHE_TIME);
+  if (!properties.getProperty('folioToken')) {
+    authenticate();
+  }
   LOCATIONS = getOrCreate('loadLocations', loadLocations, FOLIO_CACHE_TIME);
   DECISION_CODE_TO_ID = getOrCreate('loadStatisticalCodes', loadStatisticalCodes, FOLIO_CACHE_TIME);
   STATISTICAL_CODE_BY_ID = Object.fromEntries(Object.entries(DECISION_CODE_TO_ID).map(([k, v]) => [v, k]));
@@ -98,6 +100,7 @@ function loadOclcIdentifierTypeId() {
 }
 
 function validateCallNumberBoundaries(locationCode, startPrefix, endPrefix) {
+  initFolio();
   const payload = {
     'url': properties.getProperty('metadbUrlValidateBoundaries'),
     'params': {
@@ -223,7 +226,6 @@ function parseLocation(locationId) {
 
 function reauthenticate() {
   console.log('Re-authenticating with FOLIO.');
-  CacheService.getScriptCache().remove('authenticate');
   authenticate();
 }
 
