@@ -110,6 +110,7 @@ The codebase is split into two Google Apps Script projects with different lifecy
 1. Create each file from `shared_library/` (click **+** > Script or HTML file) and copy/paste the contents from this repository.
 1. In **Project Settings**, enable "Show appsscript.json manifest file in editor" and replace its contents with the contents of `shared_library/appsscript.json`.
 1. Go to **Deploy > New deployment > Library**. Note the deployment ID.
+1. Click "Share this project with others" and add as viewers 
 
 #### Option A2: Clasp (for developers)
 
@@ -186,6 +187,13 @@ Inventory: View, create, edit instances
 Inventory: View, create, edit items
 (view access to statistical codes, item note types, and instance statuses is also required)
 ```
+
+#### Shared Library Permissions
+
+Each librarian using a Project Pluck spreadsheet needs Google access permission to use the shared library.
+
+1. Go to [script.google.com](https://script.google.com) and open the copy of the shared library you created above in Institution Setup.
+1. Click "Share this project with others" and add the librarian, with Viewer permissions.
 
 ## Shelf Reading / Inventory
 
